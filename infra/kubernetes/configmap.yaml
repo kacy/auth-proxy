@@ -1,0 +1,18 @@
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: auth-proxy-config
+  namespace: auth-proxy
+  labels:
+    app: auth-proxy
+data:
+  GRPC_PORT: "50051"
+  METRICS_PORT: "9090"
+  SERVER_READ_TIMEOUT: "10s"
+  SERVER_WRITE_TIMEOUT: "10s"
+  GOTRUE_TIMEOUT: "30s"
+  ENVIRONMENT: "production"
+  LOG_LEVEL: "info"
+  # Attestation - set to "true" to enable app verification
+  ATTESTATION_ENABLED: "false"
+  ATTESTATION_IOS_ENV: "production"

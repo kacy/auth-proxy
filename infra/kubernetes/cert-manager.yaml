@@ -1,0 +1,69 @@
+# Certificate configuration using cert-manager
+# 
+# Prerequisites:
+#   1. Install cert-manager in your cluster:
+#      kubectl apply -f https://github.com/cert-manager/cert-manager/releases/download/v1.14.0/cert-manager.yaml
+#
+#   2. Wait for cert-manager to be ready:
+#      kubectl wait --for=condition=Ready pods -l app.kubernetes.io/instance=cert-manager -n cert-manager --timeout=300s
+#
+#   3. Apply this file:
+#      kubectl apply -f cert-manager.yaml
+
+---
+# ClusterIssuer for Let's Encrypt Production
+# Use this for production certificates
+apiVersion: cert-manager.io/v1
+kind: ClusterIssuer
+metadata:
+  name: letsencrypt-prod
+spec:
+  acme:
+    # Let's Encrypt production server
+    server: https://acme-v02.api.letsencrypt.org/directory
+    # Email for certificate expiration notifications
+    email: your-email@yourdomain.com  # CHANGE THIS!
+    privateKeySecretRef:
+      name: letsencrypt-prod-account-key
+    solvers:
+      # HTTP-01 challenge (requires ingress to be accessible)
+      - http01:
+          ingress:
+            class: nginx
+
+---
+# ClusterIssuer for Let's Encrypt Staging (for testing)
+# Use this first to avoid rate limits while testing
+apiVersion: cert-manager.io/v1
+kind: ClusterIssuer
+metadata:
+  name: letsencrypt-staging
+spec:
+  acme:
+    # Let's Encrypt staging server (not trusted, but no rate limits)
+    server: https://acme-staging-v02.api.letsencrypt.org/directory
+    email: your-email@yourdomain.com  # CHANGE THIS!
+    privateKeySecretRef:
+      name: letsencrypt-staging-account-key
+    solvers:
+      - http01:
+          ingress:
+            class: nginx
+
+---
+# Certificate resource - requests a certificate from Let's Encrypt
+# cert-manager will automatically create the 'auth-proxy-tls' secret
+apiVersion: cert-manager.io/v1
+kind: Certificate
+metadata:
+  name: auth-proxy-tls
+  namespace: auth-proxy
+spec:
+  secretName: auth-proxy-tls  # This secret will be auto-created
+  issuerRef:
+    name: letsencrypt-prod    # Use 'letsencrypt-staging' for testing first
+    kind: ClusterIssuer
+  dnsNames:
+    - auth.yourdomain.com     # CHANGE THIS to your actual domain
+  # Certificate will be renewed 30 days before expiration
+  renewBefore: 720h  # 30 days

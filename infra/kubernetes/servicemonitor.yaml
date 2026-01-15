@@ -1,0 +1,21 @@
+apiVersion: monitoring.coreos.com/v1
+kind: ServiceMonitor
+metadata:
+  name: auth-proxy
+  namespace: auth-proxy
+  labels:
+    app: auth-proxy
+    # Label for Prometheus Operator to discover
+    release: prometheus
+spec:
+  selector:
+    matchLabels:
+      app: auth-proxy
+  namespaceSelector:
+    matchNames:
+      - auth-proxy
+  endpoints:
+    - port: metrics
+      path: /metrics
+      interval: 15s
+      scrapeTimeout: 10s

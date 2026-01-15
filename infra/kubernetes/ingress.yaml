@@ -1,0 +1,47 @@
+apiVersion: networking.k8s.io/v1
+kind: Ingress
+metadata:
+  name: auth-proxy
+  namespace: auth-proxy
+  labels:
+    app: auth-proxy
+  annotations:
+    # For gRPC, use the NGINX gRPC backend protocol
+    nginx.ingress.kubernetes.io/backend-protocol: "GRPC"
+    nginx.ingress.kubernetes.io/ssl-redirect: "true"
+    
+    # gRPC requires HTTP/2
+    nginx.ingress.kubernetes.io/http2-push-preload: "true"
+    
+    # Timeouts for gRPC
+    nginx.ingress.kubernetes.io/proxy-read-timeout: "3600"
+    nginx.ingress.kubernetes.io/proxy-send-timeout: "3600"
+    nginx.ingress.kubernetes.io/proxy-connect-timeout: "10"
+    
+    # Rate limiting
+    nginx.ingress.kubernetes.io/limit-rps: "100"
+    nginx.ingress.kubernetes.io/limit-connections: "50"
+    
+    # TLS with cert-manager - automatically provisions Let's Encrypt certificate
+    cert-manager.io/cluster-issuer: "letsencrypt-prod"
+spec:
+  ingressClassName: nginx
+  
+  # TLS configuration - Required for gRPC in production
+  # The 'auth-proxy-tls' secret is automatically created by cert-manager
+  tls:
+    - hosts:
+        - auth.yourdomain.com  # CHANGE THIS to your actual domain
+      secretName: auth-proxy-tls
+  
+  rules:
+    - host: auth.yourdomain.com  # CHANGE THIS to your actual domain
+      http:
+        paths:
+          - path: /
+            pathType: Prefix
+            backend:
+              service:
+                name: auth-proxy
+                port:
+                  name: grpc

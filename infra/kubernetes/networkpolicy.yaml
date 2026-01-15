@@ -1,0 +1,69 @@
+apiVersion: networking.k8s.io/v1
+kind: NetworkPolicy
+metadata:
+  name: auth-proxy
+  namespace: auth-proxy
+  labels:
+    app: auth-proxy
+spec:
+  podSelector:
+    matchLabels:
+      app: auth-proxy
+  policyTypes:
+    - Ingress
+    - Egress
+  
+  ingress:
+    # Allow traffic from ingress controller
+    - from:
+        - namespaceSelector:
+            matchLabels:
+              kubernetes.io/metadata.name: ingress-nginx
+      ports:
+        - protocol: TCP
+          port: 50051
+    
+    # Allow traffic from Prometheus (for scraping)
+    - from:
+        - namespaceSelector:
+            matchLabels:
+              kubernetes.io/metadata.name: monitoring
+      ports:
+        - protocol: TCP
+          port: 9090
+    
+    # Allow traffic within the namespace
+    - from:
+        - podSelector: {}
+      ports:
+        - protocol: TCP
+          port: 50051
+        - protocol: TCP
+          port: 9090
+
+  egress:
+    # Allow DNS resolution
+    - to:
+        - namespaceSelector: {}
+          podSelector:
+            matchLabels:
+              k8s-app: kube-dns
+      ports:
+        - protocol: UDP
+          port: 53
+    
+    # Allow traffic to GoTrue (internal service)
+    # Adjust the selector based on your GoTrue deployment
+    - to:
+        - namespaceSelector: {}
+      ports:
+        - protocol: TCP
+          port: 9999
+    
+    # Allow HTTPS for attestation verification (Apple/Google APIs)
+    - to:
+        - ipBlock:
+            cidr: 0.0.0.0/0
+      ports:
+        - protocol: TCP
+          port: 443

@@ -1,0 +1,144 @@
+syntax = "proto3";
+
+package auth.v1;
+
+option go_package = "github.com/company/auth-proxy/api/gen/auth/v1;authv1";
+
+// AuthService provides authentication operations.
+service AuthService {
+  // SignUp creates a new user account with email and password.
+  rpc SignUp(SignUpRequest) returns (AuthResponse);
+  
+  // SignIn authenticates a user with email and password.
+  rpc SignIn(SignInRequest) returns (AuthResponse);
+  
+  // SignInWithGoogle authenticates a user with Google OAuth.
+  rpc SignInWithGoogle(OAuthRequest) returns (AuthResponse);
+  
+  // SignInWithApple authenticates a user with Apple OAuth.
+  rpc SignInWithApple(OAuthRequest) returns (AuthResponse);
+  
+  // RefreshToken refreshes an access token using a refresh token.
+  rpc RefreshToken(RefreshTokenRequest) returns (AuthResponse);
+  
+  // Logout invalidates the user's session.
+  rpc Logout(LogoutRequest) returns (LogoutResponse);
+}
+
+// HealthService provides health check operations.
+service HealthService {
+  // Check performs a health check.
+  rpc Check(HealthCheckRequest) returns (HealthCheckResponse);
+}
+
+// SignUpRequest contains the data needed to create a new user.
+message SignUpRequest {
+  // User's email address.
+  string email = 1;
+  // User's password (minimum 8 characters).
+  string password = 2;
+  // Optional attestation token for app verification.
+  AttestationData attestation = 10;
+}
+
+// SignInRequest contains the data needed to authenticate a user.
+message SignInRequest {
+  // User's email address.
+  string email = 1;
+  // User's password.
+  string password = 2;
+  // Optional attestation token for app verification.
+  AttestationData attestation = 10;
+}
+
+// OAuthRequest contains the data needed for OAuth authentication.
+message OAuthRequest {
+  // The ID token from the OAuth provider.
+  string id_token = 1;
+  // Optional nonce for additional security.
+  string nonce = 2;
+  // Optional attestation token for app verification.
+  AttestationData attestation = 10;
+}
+
+// RefreshTokenRequest contains the refresh token to exchange.
+message RefreshTokenRequest {
+  // The refresh token to exchange for new tokens.
+  string refresh_token = 1;
+  // Optional attestation token for app verification.
+  AttestationData attestation = 10;
+}
+
+// LogoutRequest contains the access token to invalidate.
+message LogoutRequest {
+  // The access token to invalidate.
+  string access_token = 1;
+}
+
+// AuthResponse contains the authentication result.
+message AuthResponse {
+  // The access token for API requests.
+  string access_token = 1;
+  // The type of token (always "bearer").
+  string token_type = 2;
+  // The number of seconds until the access token expires.
+  int32 expires_in = 3;
+  // The refresh token for obtaining new access tokens.
+  string refresh_token = 4;
+  // The authenticated user.
+  User user = 5;
+}
+
+// LogoutResponse confirms the logout operation.
+message LogoutResponse {
+  // Confirmation message.
+  string message = 1;
+}
+
+// User represents an authenticated user.
+message User {
+  // The user's unique identifier.
+  string id = 1;
+  // The user's email address.
+  string email = 2;
+  // The timestamp when the user was created.
+  string created_at = 3;
+}
+
+// AttestationData contains platform-specific attestation information.
+message AttestationData {
+  // The platform type.
+  Platform platform = 1;
+  // The attestation token from the platform.
+  string token = 2;
+  // iOS: The key ID for App Attest.
+  string key_id = 3;
+  // Challenge/nonce used during attestation generation.
+  string challenge = 4;
+}
+
+// Platform identifies the client platform.
+enum Platform {
+  PLATFORM_UNSPECIFIED = 0;
+  PLATFORM_IOS = 1;
+  PLATFORM_ANDROID = 2;
+}
+
+// HealthCheckRequest is empty for simple health checks.
+message HealthCheckRequest {
+  // Optional service name to check.
+  string service = 1;
+}
+
+// HealthCheckResponse contains the health check result.
+message HealthCheckResponse {
+  // The health status.
+  ServingStatus status = 1;
+}
+
+// ServingStatus indicates the health of the service.
+enum ServingStatus {
+  SERVING_STATUS_UNSPECIFIED = 0;
+  SERVING_STATUS_SERVING = 1;
+  SERVING_STATUS_NOT_SERVING = 2;
+}
