@@ -5,35 +5,28 @@ import (
 	"github.com/prometheus/client_golang/prometheus/promauto"
 )
 
-// Metrics holds all Prometheus metrics for the auth-proxy service.
 type Metrics struct {
-	// gRPC metrics
 	GRPCRequestsTotal    *prometheus.CounterVec
 	GRPCRequestDuration  *prometheus.HistogramVec
 	GRPCRequestsInFlight prometheus.Gauge
 
-	// Authentication metrics
 	AuthAttemptsTotal *prometheus.CounterVec
 	AuthSuccessTotal  *prometheus.CounterVec
 	AuthFailuresTotal *prometheus.CounterVec
 	AuthLatency       *prometheus.HistogramVec
 
-	// GoTrue client metrics
 	GoTrueRequestsTotal   *prometheus.CounterVec
 	GoTrueRequestDuration *prometheus.HistogramVec
 	GoTrueErrors          *prometheus.CounterVec
 
-	// Business metrics
 	SignupsTotal *prometheus.CounterVec
 	LoginsTotal  *prometheus.CounterVec
 
-	// Attestation metrics
 	AttestationAttemptsTotal *prometheus.CounterVec
 	AttestationSuccessTotal  *prometheus.CounterVec
 	AttestationFailuresTotal *prometheus.CounterVec
 }
 
-// New creates and registers all Prometheus metrics.
 func New() *Metrics {
 	return &Metrics{
 		GRPCRequestsTotal: promauto.NewCounterVec(

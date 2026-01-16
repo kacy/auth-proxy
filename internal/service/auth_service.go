@@ -13,7 +13,6 @@ import (
 	"google.golang.org/grpc/status"
 )
 
-// AuthService implements the gRPC AuthService.
 type AuthService struct {
 	authv1.UnimplementedAuthServiceServer
 	client  *gotrue.Client
@@ -21,7 +20,6 @@ type AuthService struct {
 	metrics *metrics.Metrics
 }
 
-// NewAuthService creates a new AuthService.
 func NewAuthService(client *gotrue.Client, logger *logging.Logger, m *metrics.Metrics) *AuthService {
 	return &AuthService{
 		client:  client,
@@ -30,9 +28,7 @@ func NewAuthService(client *gotrue.Client, logger *logging.Logger, m *metrics.Me
 	}
 }
 
-// SignUp creates a new user account with email and password.
 func (s *AuthService) SignUp(ctx context.Context, req *authv1.SignUpRequest) (*authv1.AuthResponse, error) {
-	// Validate request
 	if req.Email == "" || req.Password == "" {
 		return nil, status.Error(codes.InvalidArgument, "email and password are required")
 	}
@@ -71,9 +67,7 @@ func (s *AuthService) SignUp(ctx context.Context, req *authv1.SignUpRequest) (*a
 	return toProtoAuthResponse(resp), nil
 }
 
-// SignIn authenticates a user with email and password.
 func (s *AuthService) SignIn(ctx context.Context, req *authv1.SignInRequest) (*authv1.AuthResponse, error) {
-	// Validate request
 	if req.Email == "" || req.Password == "" {
 		return nil, status.Error(codes.InvalidArgument, "email and password are required")
 	}
@@ -104,7 +98,6 @@ func (s *AuthService) SignIn(ctx context.Context, req *authv1.SignInRequest) (*a
 	return toProtoAuthResponse(resp), nil
 }
 
-// SignInWithGoogle authenticates a user with Google OAuth.
 func (s *AuthService) SignInWithGoogle(ctx context.Context, req *authv1.OAuthRequest) (*authv1.AuthResponse, error) {
 	if req.IdToken == "" {
 		return nil, status.Error(codes.InvalidArgument, "id_token is required")
@@ -127,7 +120,6 @@ func (s *AuthService) SignInWithGoogle(ctx context.Context, req *authv1.OAuthReq
 	return toProtoAuthResponse(resp), nil
 }
 
-// SignInWithApple authenticates a user with Apple OAuth.
 func (s *AuthService) SignInWithApple(ctx context.Context, req *authv1.OAuthRequest) (*authv1.AuthResponse, error) {
 	if req.IdToken == "" {
 		return nil, status.Error(codes.InvalidArgument, "id_token is required")
@@ -150,7 +142,6 @@ func (s *AuthService) SignInWithApple(ctx context.Context, req *authv1.OAuthRequ
 	return toProtoAuthResponse(resp), nil
 }
 
-// RefreshToken refreshes an access token using a refresh token.
 func (s *AuthService) RefreshToken(ctx context.Context, req *authv1.RefreshTokenRequest) (*authv1.AuthResponse, error) {
 	if req.RefreshToken == "" {
 		return nil, status.Error(codes.InvalidArgument, "refresh_token is required")
@@ -171,7 +162,6 @@ func (s *AuthService) RefreshToken(ctx context.Context, req *authv1.RefreshToken
 	return toProtoAuthResponse(resp), nil
 }
 
-// Logout invalidates the user's session.
 func (s *AuthService) Logout(ctx context.Context, req *authv1.LogoutRequest) (*authv1.LogoutResponse, error) {
 	if req.AccessToken == "" {
 		return nil, status.Error(codes.InvalidArgument, "access_token is required")
@@ -191,7 +181,6 @@ func (s *AuthService) Logout(ctx context.Context, req *authv1.LogoutRequest) (*a
 	}, nil
 }
 
-// toProtoAuthResponse converts gotrue response to proto response.
 func toProtoAuthResponse(resp *gotrue.AuthResponse) *authv1.AuthResponse {
 	protoResp := &authv1.AuthResponse{
 		AccessToken:  resp.AccessToken,
@@ -211,7 +200,6 @@ func toProtoAuthResponse(resp *gotrue.AuthResponse) *authv1.AuthResponse {
 	return protoResp
 }
 
-// isValidEmail performs basic email validation.
 func isValidEmail(email string) bool {
 	parts := strings.Split(email, "@")
 	if len(parts) != 2 {
@@ -226,7 +214,6 @@ func isValidEmail(email string) bool {
 	return true
 }
 
-// maskEmail masks an email for logging.
 func maskEmail(email string) string {
 	parts := strings.Split(email, "@")
 	if len(parts) != 2 {

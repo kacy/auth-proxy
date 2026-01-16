@@ -7,19 +7,15 @@ import (
 	"time"
 )
 
-// Config holds all configuration for the auth-proxy service.
 type Config struct {
-	// Server settings
 	GRPCPort           int
 	ServerReadTimeout  time.Duration
 	ServerWriteTimeout time.Duration
 
-	// GoTrue settings
 	GoTrueURL     string
 	GoTrueAnonKey string
 	GoTrueTimeout time.Duration
 
-	// OAuth settings
 	GoogleClientID     string
 	GoogleClientSecret string
 	AppleClientID      string
@@ -27,28 +23,23 @@ type Config struct {
 	AppleKeyID         string
 	ApplePrivateKey    string
 
-	// Metrics settings
 	MetricsPort int
-
-	// Runtime settings
 	Environment string
 	LogLevel    string
 
-	// Attestation settings (optional - for locking down to your apps)
+	// attestation stuff - leave disabled if you don't need it
 	AttestationEnabled        bool
-	AttestationIOSAppID       string // e.g., "TEAMID.com.company.app"
-	AttestationIOSEnv         string // "production" or "development"
-	AttestationAndroidPackage string // e.g., "com.company.app"
-	AttestationAndroidProject string // Google Cloud project ID
-	AttestationAndroidKey     string // Service account key JSON
+	AttestationIOSAppID       string
+	AttestationIOSEnv         string
+	AttestationAndroidPackage string
+	AttestationAndroidProject string
+	AttestationAndroidKey     string
 
-	// TLS settings (optional)
 	TLSEnabled  bool
 	TLSCertFile string
 	TLSKeyFile  string
 }
 
-// Load reads configuration from environment variables.
 func Load() (*Config, error) {
 	cfg := &Config{
 		GRPCPort:           getEnvInt("GRPC_PORT", 50051),
@@ -67,11 +58,9 @@ func Load() (*Config, error) {
 		ApplePrivateKey:    os.Getenv("APPLE_PRIVATE_KEY"),
 
 		MetricsPort: getEnvInt("METRICS_PORT", 9090),
-
 		Environment: getEnvDefault("ENVIRONMENT", "development"),
 		LogLevel:    getEnvDefault("LOG_LEVEL", "info"),
 
-		// Attestation - disabled by default
 		AttestationEnabled:        getEnvBool("ATTESTATION_ENABLED", false),
 		AttestationIOSAppID:       os.Getenv("ATTESTATION_IOS_APP_ID"),
 		AttestationIOSEnv:         getEnvDefault("ATTESTATION_IOS_ENV", "production"),
@@ -79,7 +68,6 @@ func Load() (*Config, error) {
 		AttestationAndroidProject: os.Getenv("ATTESTATION_ANDROID_PROJECT"),
 		AttestationAndroidKey:     os.Getenv("ATTESTATION_ANDROID_KEY"),
 
-		// TLS
 		TLSEnabled:  getEnvBool("TLS_ENABLED", false),
 		TLSCertFile: os.Getenv("TLS_CERT_FILE"),
 		TLSKeyFile:  os.Getenv("TLS_KEY_FILE"),
@@ -92,7 +80,6 @@ func Load() (*Config, error) {
 	return cfg, nil
 }
 
-// Validate checks that all required configuration is present.
 func (c *Config) Validate() error {
 	if c.GoTrueURL == "" {
 		return fmt.Errorf("GOTRUE_URL is required")
@@ -101,9 +88,7 @@ func (c *Config) Validate() error {
 		return fmt.Errorf("GOTRUE_ANON_KEY is required")
 	}
 
-	// Validate attestation config if enabled
 	if c.AttestationEnabled {
-		// At least one platform must be configured
 		hasIOS := c.AttestationIOSAppID != ""
 		hasAndroid := c.AttestationAndroidPackage != ""
 
@@ -112,7 +97,6 @@ func (c *Config) Validate() error {
 		}
 	}
 
-	// Validate TLS config if enabled
 	if c.TLSEnabled {
 		if c.TLSCertFile == "" || c.TLSKeyFile == "" {
 			return fmt.Errorf("TLS_ENABLED is true but TLS_CERT_FILE or TLS_KEY_FILE not set")
@@ -122,7 +106,6 @@ func (c *Config) Validate() error {
 	return nil
 }
 
-// IsProduction returns true if running in production environment.
 func (c *Config) IsProduction() bool {
 	return c.Environment == "production"
 }

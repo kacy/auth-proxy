@@ -14,7 +14,6 @@ import (
 	"go.uber.org/zap"
 )
 
-// Client is a GoTrue API client.
 type Client struct {
 	baseURL    string
 	anonKey    string
@@ -23,7 +22,6 @@ type Client struct {
 	metrics    *metrics.Metrics
 }
 
-// NewClient creates a new GoTrue client.
 func NewClient(baseURL, anonKey string, timeout time.Duration, logger *logging.Logger, m *metrics.Metrics) *Client {
 	return &Client{
 		baseURL: baseURL,
@@ -41,27 +39,23 @@ func NewClient(baseURL, anonKey string, timeout time.Duration, logger *logging.L
 	}
 }
 
-// SignUpRequest represents a signup request.
 type SignUpRequest struct {
 	Email    string                 `json:"email"`
 	Password string                 `json:"password"`
 	Data     map[string]interface{} `json:"data,omitempty"`
 }
 
-// SignInRequest represents a sign-in request.
 type SignInRequest struct {
 	Email    string `json:"email"`
 	Password string `json:"password"`
 }
 
-// OAuthSignInRequest represents an OAuth sign-in request.
 type OAuthSignInRequest struct {
 	Provider string `json:"provider"`
 	IDToken  string `json:"id_token"`
 	Nonce    string `json:"nonce,omitempty"`
 }
 
-// AuthResponse represents an authentication response.
 type AuthResponse struct {
 	AccessToken  string `json:"access_token"`
 	TokenType    string `json:"token_type"`
@@ -70,7 +64,6 @@ type AuthResponse struct {
 	User         *User  `json:"user"`
 }
 
-// User represents a user in the system.
 type User struct {
 	ID               string                 `json:"id"`
 	Email            string                 `json:"email"`
@@ -81,7 +74,6 @@ type User struct {
 	UserMetadata     map[string]interface{} `json:"user_metadata"`
 }
 
-// ErrorResponse represents an error response from GoTrue.
 type ErrorResponse struct {
 	Error            string `json:"error"`
 	ErrorDescription string `json:"error_description"`
@@ -99,7 +91,6 @@ func (e *ErrorResponse) String() string {
 	return e.Error
 }
 
-// SignUp creates a new user account.
 func (c *Client) SignUp(ctx context.Context, req *SignUpRequest) (*AuthResponse, error) {
 	endpoint := "/auth/v1/signup"
 	start := time.Now()
@@ -131,7 +122,6 @@ func (c *Client) SignUp(ctx context.Context, req *SignUpRequest) (*AuthResponse,
 	return &authResp, nil
 }
 
-// SignIn authenticates a user with email and password.
 func (c *Client) SignIn(ctx context.Context, req *SignInRequest) (*AuthResponse, error) {
 	endpoint := "/auth/v1/token?grant_type=password"
 	start := time.Now()
@@ -163,7 +153,6 @@ func (c *Client) SignIn(ctx context.Context, req *SignInRequest) (*AuthResponse,
 	return &authResp, nil
 }
 
-// SignInWithOAuth authenticates a user with an OAuth provider.
 func (c *Client) SignInWithOAuth(ctx context.Context, provider string, idToken string, nonce string) (*AuthResponse, error) {
 	endpoint := "/auth/v1/token?grant_type=id_token"
 	start := time.Now()
@@ -203,7 +192,6 @@ func (c *Client) SignInWithOAuth(ctx context.Context, provider string, idToken s
 	return &authResp, nil
 }
 
-// RefreshToken refreshes an access token.
 func (c *Client) RefreshToken(ctx context.Context, refreshToken string) (*AuthResponse, error) {
 	endpoint := "/auth/v1/token?grant_type=refresh_token"
 
@@ -227,7 +215,6 @@ func (c *Client) RefreshToken(ctx context.Context, refreshToken string) (*AuthRe
 	return &authResp, nil
 }
 
-// Logout signs out a user.
 func (c *Client) Logout(ctx context.Context, accessToken string) error {
 	endpoint := "/auth/v1/logout"
 
@@ -264,7 +251,6 @@ func (c *Client) Logout(ctx context.Context, accessToken string) error {
 	return nil
 }
 
-// HealthCheck checks if GoTrue is healthy.
 func (c *Client) HealthCheck(ctx context.Context) error {
 	endpoint := "/auth/v1/health"
 

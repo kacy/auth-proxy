@@ -11,7 +11,6 @@ import (
 	"google.golang.org/grpc/status"
 )
 
-// UnaryServerInterceptor returns a gRPC unary server interceptor that verifies attestation.
 func UnaryServerInterceptor(verifier *Verifier, logger *logging.Logger) grpc.UnaryServerInterceptor {
 	return func(
 		ctx context.Context,
@@ -19,20 +18,16 @@ func UnaryServerInterceptor(verifier *Verifier, logger *logging.Logger) grpc.Una
 		info *grpc.UnaryServerInfo,
 		handler grpc.UnaryHandler,
 	) (interface{}, error) {
-		// Skip attestation for health checks
+		// let health checks through
 		if info.FullMethod == "/auth.v1.HealthService/Check" {
 			return handler(ctx, req)
 		}
 
-		// Skip if attestation is disabled
 		if !verifier.IsEnabled() {
 			return handler(ctx, req)
 		}
 
-		// Extract attestation data from the request
 		attestationData := extractAttestationData(req)
-
-		// Verify attestation
 		if err := verifier.Verify(ctx, attestationData); err != nil {
 			logger.AuthError("attestation verification failed",
 				zap.String("method", info.FullMethod),
@@ -55,9 +50,7 @@ func UnaryServerInterceptor(verifier *Verifier, logger *logging.Logger) grpc.Una
 	}
 }
 
-// extractAttestationData extracts attestation data from various request types.
 func extractAttestationData(req interface{}) *AttestationData {
-	// Type switch to handle different request types that may contain attestation
 	switch r := req.(type) {
 	case *authv1.SignUpRequest:
 		return protoAttestationToInternal(r.Attestation)
@@ -72,7 +65,6 @@ func extractAttestationData(req interface{}) *AttestationData {
 	}
 }
 
-// protoAttestationToInternal converts proto attestation to internal type.
 func protoAttestationToInternal(proto *authv1.AttestationData) *AttestationData {
 	if proto == nil {
 		return nil

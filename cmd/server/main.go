@@ -28,14 +28,12 @@ import (
 )
 
 func main() {
-	// Load configuration
 	cfg, err := config.Load()
 	if err != nil {
 		fmt.Fprintf(os.Stderr, "❌ Failed to load configuration: %v\n", err)
 		os.Exit(1)
 	}
 
-	// Initialize logger
 	logger, err := logging.New(cfg.LogLevel, cfg.IsProduction())
 	if err != nil {
 		fmt.Fprintf(os.Stderr, "❌ Failed to initialize logger: %v\n", err)
@@ -45,11 +43,9 @@ func main() {
 
 	logger.Startup("starting auth-proxy gRPC service")
 
-	// Initialize metrics
 	m := metrics.New()
 	logger.Logger.Info(logging.EmojiMetrics + " prometheus metrics initialized")
 
-	// Initialize GoTrue client
 	gotrueClient := gotrue.NewClient(
 		cfg.GoTrueURL,
 		cfg.GoTrueAnonKey,
@@ -59,7 +55,6 @@ func main() {
 	)
 	logger.Logger.Info(logging.EmojiDatabase + " gotrue client initialized")
 
-	// Initialize attestation verifier (optional)
 	attestationVerifier := attestation.NewVerifier(attestation.Config{
 		Enabled:            cfg.AttestationEnabled,
 		IOSAppID:           cfg.AttestationIOSAppID,
@@ -75,48 +70,38 @@ func main() {
 		logger.Logger.Info(logging.EmojiAuth + " app attestation disabled")
 	}
 
-	// Build gRPC server options
 	serverOpts := buildServerOptions(cfg, logger, attestationVerifier)
-
-	// Create gRPC server
 	grpcServer := grpc.NewServer(serverOpts...)
-
-	// Register services
 	authService := service.NewAuthService(gotrueClient, logger, m)
 	healthService := service.NewHealthService(gotrueClient, logger)
 
 	authv1.RegisterAuthServiceServer(grpcServer, authService)
 	authv1.RegisterHealthServiceServer(grpcServer, healthService)
 
-	// Enable reflection for development
+	// reflection makes grpcurl work without the proto file
 	if !cfg.IsProduction() {
 		reflection.Register(grpcServer)
 		logger.Logger.Info(logging.EmojiConfig + " gRPC reflection enabled (development mode)")
 	}
 
-	// Initialize gRPC Prometheus metrics
 	grpcprometheus.Register(grpcServer)
 
 	logger.Logger.Info(logging.EmojiNetwork + " gRPC services registered")
 
-	// Create gRPC listener
 	grpcListener, err := net.Listen("tcp", fmt.Sprintf(":%d", cfg.GRPCPort))
 	if err != nil {
 		logger.Logger.Error(logging.EmojiError + fmt.Sprintf(" failed to listen on port %d", cfg.GRPCPort))
 		os.Exit(1)
 	}
 
-	// Create metrics HTTP server
 	metricsServer := &http.Server{
 		Addr:    fmt.Sprintf(":%d", cfg.MetricsPort),
 		Handler: promhttp.Handler(),
 	}
 
-	// Channel to receive shutdown signals
 	shutdown := make(chan os.Signal, 1)
 	signal.Notify(shutdown, os.Interrupt, syscall.SIGTERM)
 
-	// Start metrics server
 	go func() {
 		logger.Startup(fmt.Sprintf("metrics server starting on port %d", cfg.MetricsPort))
 		if err := metricsServer.ListenAndServe(); err != nil && err != http.ErrServerClosed {
@@ -124,7 +109,6 @@ func main() {
 		}
 	}()
 
-	// Start gRPC server
 	go func() {
 		logger.Startup(fmt.Sprintf("gRPC server starting on port %d", cfg.GRPCPort))
 		if err := grpcServer.Serve(grpcListener); err != nil {
@@ -135,16 +119,13 @@ func main() {
 
 	logger.Startup("auth-proxy gRPC service started successfully")
 
-	// Wait for shutdown signal
 	<-shutdown
 
-	logger.Shutdown("shutdown signal received, starting graceful shutdown")
+	logger.Shutdown("shutting down...")
 
-	// Create shutdown context with timeout
 	ctx, cancel := context.WithTimeout(context.Background(), 30*time.Second)
 	defer cancel()
 
-	// Graceful stop gRPC server
 	stopped := make(chan struct{})
 	go func() {
 		grpcServer.GracefulStop()
@@ -159,17 +140,15 @@ func main() {
 		grpcServer.Stop()
 	}
 
-	// Shutdown metrics server
 	if err := metricsServer.Shutdown(ctx); err != nil {
 		logger.Logger.Error(logging.EmojiError + " error shutting down metrics server")
 	}
 
-	logger.Shutdown("graceful shutdown completed successfully")
+	logger.Shutdown("done")
 }
 
 func buildServerOptions(cfg *config.Config, logger *logging.Logger, verifier *attestation.Verifier) []grpc.ServerOption {
 	opts := []grpc.ServerOption{
-		// Keep-alive settings for long-lived connections
 		grpc.KeepaliveParams(keepalive.ServerParameters{
 			MaxConnectionIdle:     15 * time.Minute,
 			MaxConnectionAge:      30 * time.Minute,
@@ -182,28 +161,22 @@ func buildServerOptions(cfg *config.Config, logger *logging.Logger, verifier *at
 			PermitWithoutStream: true,
 		}),
 
-		// Connection limits
 		grpc.MaxConcurrentStreams(1000),
-
-		// Message size limits
-		grpc.MaxRecvMsgSize(4 * 1024 * 1024), // 4MB
-		grpc.MaxSendMsgSize(4 * 1024 * 1024), // 4MB
+		grpc.MaxRecvMsgSize(4 * 1024 * 1024),
+		grpc.MaxSendMsgSize(4 * 1024 * 1024),
 	}
 
-	// Build interceptor chain
 	unaryInterceptors := []grpc.UnaryServerInterceptor{
 		grpcprometheus.UnaryServerInterceptor,
 		loggingUnaryInterceptor(logger),
 	}
 
-	// Add attestation interceptor if enabled
 	if verifier.IsEnabled() {
 		unaryInterceptors = append(unaryInterceptors, attestation.UnaryServerInterceptor(verifier, logger))
 	}
 
 	opts = append(opts, grpc.ChainUnaryInterceptor(unaryInterceptors...))
 
-	// Add TLS if enabled
 	if cfg.TLSEnabled {
 		creds, err := loadTLSCredentials(cfg.TLSCertFile, cfg.TLSKeyFile)
 		if err != nil {
@@ -251,7 +224,6 @@ func loggingUnaryInterceptor(logger *logging.Logger) grpc.UnaryServerInterceptor
 			logger.Response("gRPC request completed")
 		}
 
-		// Suppress unused variable warning
 		_ = duration
 
 		return resp, err

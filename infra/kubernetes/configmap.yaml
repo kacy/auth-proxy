@@ -13,6 +13,5 @@ data:
   GOTRUE_TIMEOUT: "30s"
   ENVIRONMENT: "production"
   LOG_LEVEL: "info"
-  # Attestation - set to "true" to enable app verification
   ATTESTATION_ENABLED: "false"
   ATTESTATION_IOS_ENV: "production"

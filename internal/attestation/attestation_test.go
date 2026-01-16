@@ -41,7 +41,6 @@ func TestVerifyDisabled(t *testing.T) {
 }
 
 func TestVerifyRequiredButMissing(t *testing.T) {
-	// Create a no-op logger for testing
 	logger, _ := createTestLogger()
 	v := &Verifier{
 		config: Config{
@@ -78,9 +77,8 @@ func TestVerifyUnsupportedPlatform(t *testing.T) {
 	}
 }
 
-// createTestLogger creates a logger suitable for testing
 func createTestLogger() (*logging.Logger, error) {
-	return logging.New("error", false) // Use error level to minimize output
+	return logging.New("error", false)
 }
 
 func TestGenerateChallenge(t *testing.T) {
@@ -91,7 +89,6 @@ func TestGenerateChallenge(t *testing.T) {
 		t.Error("GenerateChallenge() returned empty string")
 	}
 
-	// Challenges should be base64 encoded
 	if len(challenge1) < 10 {
 		t.Error("GenerateChallenge() returned unexpectedly short challenge")
 	}
@@ -130,7 +127,6 @@ func TestPlatformConversion(t *testing.T) {
 
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
-			// Just verify the constants are defined correctly
 			if tt.platform < 0 || tt.platform > 2 {
 				t.Errorf("unexpected platform value: %d", tt.platform)
 			}
