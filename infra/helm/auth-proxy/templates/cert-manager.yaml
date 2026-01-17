@@ -1,0 +1,42 @@
+{{- if .Values.certManager.enabled -}}
+{{- if .Values.certManager.issuer.create -}}
+---
+apiVersion: cert-manager.io/v1
+kind: ClusterIssuer
+metadata:
+  name: {{ .Values.certManager.issuer.name }}
+  labels:
+    {{- include "auth-proxy.labels" . | nindent 4 }}
+spec:
+  acme:
+    {{- if .Values.certManager.issuer.staging }}
+    server: https://acme-staging-v02.api.letsencrypt.org/directory
+    {{- else }}
+    server: {{ .Values.certManager.issuer.server }}
+    {{- end }}
+    email: {{ .Values.certManager.issuer.email }}
+    privateKeySecretRef:
+      name: {{ .Values.certManager.issuer.name }}-account-key
+    solvers:
+      - http01:
+          ingress:
+            class: {{ .Values.ingress.className | default "nginx" }}
+{{- end }}
+{{- if .Values.certManager.certificate.create }}
+---
+apiVersion: cert-manager.io/v1
+kind: Certificate
+metadata:
+  name: {{ include "auth-proxy.fullname" . }}-tls
+  labels:
+    {{- include "auth-proxy.labels" . | nindent 4 }}
+spec:
+  secretName: {{ .Values.ingress.tls.secretName | default (printf "%s-tls" (include "auth-proxy.fullname" .)) }}
+  issuerRef:
+    name: {{ .Values.certManager.issuer.name }}
+    kind: ClusterIssuer
+  dnsNames:
+    - {{ .Values.ingress.host }}
+  renewBefore: {{ .Values.certManager.certificate.renewBefore }}
+{{- end }}
+{{- end }}

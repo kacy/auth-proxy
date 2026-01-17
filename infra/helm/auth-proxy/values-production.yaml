@@ -1,0 +1,179 @@
+# Production values for auth-proxy
+# 
+# Usage (from OCI registry):
+#   helm install auth-proxy oci://ghcr.io/kacy/auth-proxy \
+#     -f values-production.yaml \
+#     --set secrets.gotrueUrl=https://your-gotrue.example.com \
+#     --set secrets.gotrueAnonKey=your-anon-key \
+#     -n auth-proxy --create-namespace
+#
+# Usage (from source):
+#   helm install auth-proxy ./infra/helm/auth-proxy \
+#     -f ./infra/helm/auth-proxy/values-production.yaml \
+#     --set secrets.gotrueUrl=https://your-gotrue.example.com \
+#     --set secrets.gotrueAnonKey=your-anon-key \
+#     -n auth-proxy --create-namespace
+
+replicaCount: 5
+
+image:
+  # Use GHCR for the application image (published via CI)
+  repository: ghcr.io/kacy/auth-proxy
+  tag: "v1.0.0"  # Pin to specific version in production
+  pullPolicy: IfNotPresent
+
+# For private registries, uncomment and configure:
+# imagePullSecrets:
+#   - name: ghcr-credentials
+
+# Resources - adjust based on load testing
+resources:
+  requests:
+    cpu: 200m
+    memory: 256Mi
+  limits:
+    cpu: "1"
+    memory: 512Mi
+
+# Horizontal Pod Autoscaler
+autoscaling:
+  enabled: true
+  minReplicas: 5
+  maxReplicas: 50
+  targetCPUUtilizationPercentage: 70
+  targetMemoryUtilizationPercentage: 80
+
+# Pod Disruption Budget
+podDisruptionBudget:
+  enabled: true
+  minAvailable: 3
+
+# Ingress configuration
+ingress:
+  enabled: true
+  className: nginx
+  annotations:
+    nginx.ingress.kubernetes.io/backend-protocol: "GRPC"
+    nginx.ingress.kubernetes.io/ssl-redirect: "true"
+    nginx.ingress.kubernetes.io/http2-push-preload: "true"
+    nginx.ingress.kubernetes.io/proxy-read-timeout: "3600"
+    nginx.ingress.kubernetes.io/proxy-send-timeout: "3600"
+    nginx.ingress.kubernetes.io/proxy-connect-timeout: "10"
+    nginx.ingress.kubernetes.io/limit-rps: "100"
+    nginx.ingress.kubernetes.io/limit-connections: "50"
+    cert-manager.io/cluster-issuer: "letsencrypt-prod"
+  host: auth.yourdomain.com  # CHANGE THIS
+  tls:
+    enabled: true
+    secretName: auth-proxy-tls
+
+# Network Policy
+networkPolicy:
+  enabled: true
+  ingressNamespace: ingress-nginx
+  monitoringNamespace: monitoring
+
+# ServiceMonitor for Prometheus Operator
+serviceMonitor:
+  enabled: true
+  interval: 15s
+  scrapeTimeout: 10s
+  labels:
+    release: prometheus
+
+# Application Configuration
+config:
+  grpcPort: "50051"
+  metricsPort: "9090"
+  serverReadTimeout: "10s"
+  serverWriteTimeout: "10s"
+  gotrueTimeout: "30s"
+  environment: "production"
+  logLevel: "info"
+
+  # Enable attestation in production
+  attestation:
+    enabled: true
+    requireStrongIntegrity: true  # Enforce strong integrity verdict
+    challengeTimeout: "5m"
+
+  # Enable Redis for distributed state
+  redis:
+    enabled: true
+    db: "0"
+    keyPrefix: "authproxy:"
+
+# Secrets - provide via --set or external secrets manager
+# These are examples - use a secrets manager like External Secrets, Vault, or Sealed Secrets
+secrets:
+  # Required - override with actual values
+  gotrueUrl: ""       # --set secrets.gotrueUrl=https://...
+  gotrueAnonKey: ""   # --set secrets.gotrueAnonKey=...
+
+  # Optional - OAuth providers
+  googleClientId: ""
+  googleClientSecret: ""
+  appleClientId: ""
+  appleTeamId: ""
+  appleKeyId: ""
+  applePrivateKey: ""
+
+  # Required when attestation is enabled
+  attestationIosBundleId: "com.yourcompany.yourapp"
+  attestationIosTeamId: "YOURTEAMID"
+  attestationAndroidPackage: "com.yourcompany.yourapp"
+  attestationGcpProjectId: ""
+  attestationGcpCredentialsFile: ""
+
+  # Required when Redis is enabled
+  redisAddr: "redis-master.redis.svc.cluster.local:6379"
+  redisPassword: ""  # --set secrets.redisPassword=...
+
+# Alternative: Use existing secret (e.g., from External Secrets Operator)
+# existingSecret: "auth-proxy-secrets"
+
+# cert-manager configuration
+certManager:
+  enabled: true
+  issuer:
+    create: true
+    name: letsencrypt-prod
+    email: ops@yourdomain.com  # CHANGE THIS - for cert expiration notifications
+    server: https://acme-v02.api.letsencrypt.org/directory
+    staging: false
+  certificate:
+    create: true
+    renewBefore: 720h  # 30 days
+
+# Pod affinity - spread across availability zones
+affinity:
+  podAntiAffinity:
+    requiredDuringSchedulingIgnoredDuringExecution:
+      - labelSelector:
+          matchExpressions:
+            - key: app.kubernetes.io/name
+              operator: In
+              values:
+                - auth-proxy
+        topologyKey: topology.kubernetes.io/zone
+    preferredDuringSchedulingIgnoredDuringExecution:
+      - weight: 100
+        podAffinityTerm:
+          labelSelector:
+            matchExpressions:
+              - key: app.kubernetes.io/name
+                operator: In
+                values:
+                  - auth-proxy
+          topologyKey: kubernetes.io/hostname
+
+# Tolerations for dedicated nodes (optional)
+# tolerations:
+#   - key: "dedicated"
+#     operator: "Equal"
+#     value: "auth"
+#     effect: "NoSchedule"
+
+# Node selector for specific node pools (optional)
+# nodeSelector:
+#   node-type: auth-services

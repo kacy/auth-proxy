@@ -1,4 +1,4 @@
-.PHONY: all build run test lint clean docker docker-build docker-run proto help
+.PHONY: all build run test lint clean docker docker-build docker-run proto help helm-lint helm-template helm-package helm-push
 
 BINARY_NAME=auth-proxy
 VERSION=$(shell git describe --tags --always --dirty 2>/dev/null || echo "dev")
@@ -7,6 +7,11 @@ GO=go
 GOFLAGS=-ldflags="-w -s -X main.version=$(VERSION) -X main.buildTime=$(BUILD_TIME)"
 DOCKER_IMAGE=auth-proxy
 DOCKER_TAG=$(VERSION)
+
+# Helm configuration
+HELM_CHART_PATH=infra/helm/auth-proxy
+HELM_REGISTRY=ghcr.io/kacy
+HELM_CHART_VERSION=$(shell grep '^version:' $(HELM_CHART_PATH)/Chart.yaml | awk '{print $$2}')
 
 all: lint test build
 
@@ -113,3 +118,57 @@ install-tools:
 
 ## check: lint + test + build
 check: lint test build
+
+# ============================================
+# Helm
+# ============================================
+
+## helm-lint: lint helm chart
+helm-lint:
+	helm lint $(HELM_CHART_PATH)
+
+## helm-template: render templates locally
+helm-template:
+	helm template auth-proxy $(HELM_CHART_PATH)
+
+## helm-template-prod: render with production values
+helm-template-prod:
+	helm template auth-proxy $(HELM_CHART_PATH) -f $(HELM_CHART_PATH)/values-production.yaml
+
+## helm-package: package chart for distribution
+helm-package:
+	helm package $(HELM_CHART_PATH) --destination .helm-packages
+
+## helm-push: push chart to GHCR (requires: docker login ghcr.io)
+helm-push: helm-package
+	helm push .helm-packages/auth-proxy-$(HELM_CHART_VERSION).tgz oci://$(HELM_REGISTRY)
+
+## helm-install: install chart locally (for testing)
+helm-install:
+	helm install auth-proxy $(HELM_CHART_PATH) \
+		--set secrets.gotrueUrl=http://localhost:9999 \
+		--set secrets.gotrueAnonKey=test-key \
+		--set ingress.enabled=false \
+		--set certManager.enabled=false \
+		-n auth-proxy --create-namespace --dry-run
+
+## helm-install-prod: install from GHCR with production values
+helm-install-prod:
+	@echo "Usage: make helm-install-prod VALUES_FILE=/path/to/values.yaml"
+	@echo ""
+	@echo "Example:"
+	@echo "  helm install auth-proxy oci://$(HELM_REGISTRY)/auth-proxy \\"
+	@echo "    -f /path/to/your/values.yaml \\"
+	@echo "    --set secrets.gotrueUrl=https://your-gotrue.example.com \\"
+	@echo "    --set secrets.gotrueAnonKey=your-anon-key \\"
+	@echo "    -n auth-proxy --create-namespace"
+
+## helm-release: create and push a helm release tag
+helm-release:
+	@if [ -z "$(V)" ]; then \
+		echo "Usage: make helm-release V=0.1.0"; \
+		exit 1; \
+	fi
+	git tag -a helm-v$(V) -m "Helm chart release $(V)"
+	git push origin helm-v$(V)
+	@echo "Tagged helm-v$(V) - GitHub Actions will publish to GHCR"

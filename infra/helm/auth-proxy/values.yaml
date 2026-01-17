@@ -1,0 +1,226 @@
+# Default values for auth-proxy
+
+replicaCount: 3
+
+image:
+  repository: auth-proxy
+  tag: latest
+  pullPolicy: Always
+
+imagePullSecrets: []
+nameOverride: ""
+fullnameOverride: ""
+
+serviceAccount:
+  create: true
+  annotations: {}
+  name: ""
+
+# Pod annotations
+podAnnotations:
+  prometheus.io/scrape: "true"
+  prometheus.io/port: "9090"
+  prometheus.io/path: "/metrics"
+
+podSecurityContext:
+  runAsNonRoot: true
+  runAsUser: 1000
+  runAsGroup: 1000
+  fsGroup: 1000
+
+securityContext:
+  allowPrivilegeEscalation: false
+  readOnlyRootFilesystem: true
+  capabilities:
+    drop:
+      - ALL
+
+service:
+  type: ClusterIP
+  grpcPort: 50051
+  metricsPort: 9090
+
+# Resource limits
+resources:
+  requests:
+    cpu: 100m
+    memory: 128Mi
+  limits:
+    cpu: 500m
+    memory: 256Mi
+
+# Horizontal Pod Autoscaler
+autoscaling:
+  enabled: true
+  minReplicas: 3
+  maxReplicas: 20
+  targetCPUUtilizationPercentage: 70
+  targetMemoryUtilizationPercentage: 80
+  behavior:
+    scaleDown:
+      stabilizationWindowSeconds: 300
+      policies:
+        - type: Percent
+          value: 10
+          periodSeconds: 60
+    scaleUp:
+      stabilizationWindowSeconds: 0
+      policies:
+        - type: Percent
+          value: 100
+          periodSeconds: 15
+        - type: Pods
+          value: 4
+          periodSeconds: 15
+      selectPolicy: Max
+
+# Pod Disruption Budget
+podDisruptionBudget:
+  enabled: true
+  minAvailable: 2
+
+# Ingress configuration
+ingress:
+  enabled: true
+  className: nginx
+  annotations:
+    nginx.ingress.kubernetes.io/backend-protocol: "GRPC"
+    nginx.ingress.kubernetes.io/ssl-redirect: "true"
+    nginx.ingress.kubernetes.io/http2-push-preload: "true"
+    nginx.ingress.kubernetes.io/proxy-read-timeout: "3600"
+    nginx.ingress.kubernetes.io/proxy-send-timeout: "3600"
+    nginx.ingress.kubernetes.io/proxy-connect-timeout: "10"
+    nginx.ingress.kubernetes.io/limit-rps: "100"
+    nginx.ingress.kubernetes.io/limit-connections: "50"
+    cert-manager.io/cluster-issuer: "letsencrypt-prod"
+  host: auth.yourdomain.com
+  tls:
+    enabled: true
+    secretName: auth-proxy-tls
+
+# Network Policy
+networkPolicy:
+  enabled: true
+  ingressNamespace: ingress-nginx
+  monitoringNamespace: monitoring
+
+# ServiceMonitor for Prometheus Operator
+serviceMonitor:
+  enabled: true
+  interval: 15s
+  scrapeTimeout: 10s
+  labels:
+    release: prometheus
+
+# Probes
+livenessProbe:
+  grpc:
+    port: 50051
+    service: auth.v1.HealthService
+  initialDelaySeconds: 5
+  periodSeconds: 10
+  timeoutSeconds: 3
+  failureThreshold: 3
+
+readinessProbe:
+  grpc:
+    port: 50051
+    service: auth.v1.HealthService
+  initialDelaySeconds: 5
+  periodSeconds: 5
+  timeoutSeconds: 3
+  failureThreshold: 3
+
+# Pod affinity - spread across nodes
+affinity:
+  podAntiAffinity:
+    preferredDuringSchedulingIgnoredDuringExecution:
+      - weight: 100
+        podAffinityTerm:
+          labelSelector:
+            matchExpressions:
+              - key: app.kubernetes.io/name
+                operator: In
+                values:
+                  - auth-proxy
+          topologyKey: kubernetes.io/hostname
+
+nodeSelector: {}
+tolerations: []
+
+# Deployment strategy
+strategy:
+  type: RollingUpdate
+  rollingUpdate:
+    maxUnavailable: 1
+    maxSurge: 1
+
+terminationGracePeriodSeconds: 30
+
+# ============================================
+# Application Configuration
+# ============================================
+
+config:
+  # Server settings
+  grpcPort: "50051"
+  metricsPort: "9090"
+  serverReadTimeout: "10s"
+  serverWriteTimeout: "10s"
+  gotrueTimeout: "30s"
+  environment: "production"
+  logLevel: "info"
+
+  # Attestation settings
+  attestation:
+    enabled: false
+    requireStrongIntegrity: false
+    challengeTimeout: "5m"
+
+  # Redis settings (for distributed attestation state)
+  redis:
+    enabled: false
+    db: "0"
+    keyPrefix: "authproxy:"
+
+# Secrets - these should be provided via --set or external secrets manager
+secrets:
+  # Required
+  gotrueUrl: ""
+  gotrueAnonKey: ""
+
+  # Optional - OAuth
+  googleClientId: ""
+  googleClientSecret: ""
+  appleClientId: ""
+  appleTeamId: ""
+  appleKeyId: ""
+  applePrivateKey: ""
+
+  # Optional - Attestation
+  attestationIosBundleId: ""
+  attestationIosTeamId: ""
+  attestationAndroidPackage: ""
+  attestationGcpProjectId: ""
+  attestationGcpCredentialsFile: ""
+
+  # Optional - Redis
+  redisAddr: ""
+  redisPassword: ""
+
+# Use existing secret instead of creating one
+existingSecret: ""
+
+# cert-manager configuration
+certManager:
+  enabled: true
+  issuer:
+    create: true
+    name: letsencrypt-prod
+    email: you@example.com
+    server: https://acme-v02.api.letsencrypt.org/directory
+    # Set to true to use staging (for testing)
+    staging: false
+  certificate:
+    create: true
+    renewBefore: 720h  # 30 days

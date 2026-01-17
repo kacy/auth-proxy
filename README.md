@@ -203,6 +203,127 @@ TLS terminates at the ingress, so internal pod traffic is plaintext. cert-manage
 
 The manifests include: namespace, deployment (3 replicas), HPA (scales 3-20), PDB (min 2 available), ingress, network policies, and a ServiceMonitor for Prometheus.
 
+## Deploying with Helm (Recommended)
+
+For production deployments, use the Helm chart which provides more flexibility and easier configuration management.
+
+### Prerequisites
+
+- Helm 3.x
+- NGINX Ingress Controller
+- cert-manager (optional, for automatic TLS)
+
+### Install from OCI Registry (Recommended)
+
+The Helm chart is published to GitHub Container Registry on each release:
+
+```bash
+# Install latest version
+helm install auth-proxy oci://ghcr.io/kacy/auth-proxy \
+  -f /path/to/your/values.yaml \
+  --set secrets.gotrueUrl=https://your-gotrue.example.com \
+  --set secrets.gotrueAnonKey=your-anon-key \
+  -n auth-proxy --create-namespace
+
+# Install specific version
+helm install auth-proxy oci://ghcr.io/kacy/auth-proxy --version 0.1.0 \
+  -f /path/to/your/values.yaml \
+  -n auth-proxy --create-namespace
+
+# Upgrade
+helm upgrade auth-proxy oci://ghcr.io/kacy/auth-proxy \
+  -f /path/to/your/values.yaml \
+  -n auth-proxy
+```
+
+### Install from Source
+
+If you've cloned the repo or want to customize the chart:
+
+```bash
+# Add your values and install
+helm install auth-proxy ./infra/helm/auth-proxy \
+  --set secrets.gotrueUrl=https://your-gotrue.example.com \
+  --set secrets.gotrueAnonKey=your-anon-key \
+  --set ingress.host=auth.yourdomain.com \
+  --set certManager.issuer.email=you@yourdomain.com \
+  -n auth-proxy --create-namespace
+```
+
+### Production Deployment
+
+Use the production values file as a starting point. Store your values in a separate repo for GitOps workflows:
+
+```bash
+# Download the example production values
+curl -O https://raw.githubusercontent.com/kacy/auth-proxy/main/infra/helm/auth-proxy/values-production.yaml
+
+# Edit with your settings
+vi values-production.yaml
+
+# Deploy from OCI registry with your values
+helm install auth-proxy oci://ghcr.io/kacy/auth-proxy \
+  -f values-production.yaml \
+  --set secrets.gotrueUrl=https://your-gotrue.example.com \
+  --set secrets.gotrueAnonKey=your-anon-key \
+  --set secrets.redisPassword=your-redis-password \
+  -n auth-proxy --create-namespace
+```
+
+### Using External Secrets
+
+Instead of passing secrets via `--set`, use an external secrets manager:
+
+```bash
+# Create secret externally (e.g., with External Secrets Operator, Vault, etc.)
+kubectl create secret generic auth-proxy-secrets \
+  --from-literal=GOTRUE_URL=https://... \
+  --from-literal=GOTRUE_ANON_KEY=... \
+  -n auth-proxy
+
+# Install chart using existing secret
+helm install auth-proxy oci://ghcr.io/kacy/auth-proxy \
+  -f values-production.yaml \
+  --set existingSecret=auth-proxy-secrets \
+  -n auth-proxy --create-namespace
+```
+
+### Upgrading
+
+```bash
+helm upgrade auth-proxy oci://ghcr.io/kacy/auth-proxy \
+  -f values-production.yaml \
+  -n auth-proxy
+```
+
+### Uninstalling
+
+```bash
+helm uninstall auth-proxy -n auth-proxy
+```
+
+### Key Configuration Options
+
+| Parameter | Default | Description |
+|-----------|---------|-------------|
+| `replicaCount` | 3 | Number of replicas |
+| `image.repository` | auth-proxy | Container image |
+| `image.tag` | latest | Image tag |
+| `ingress.enabled` | true | Enable ingress |
+| `ingress.host` | auth.yourdomain.com | Ingress hostname |
+| `ingress.tls.enabled` | true | Enable TLS |
+| `autoscaling.enabled` | true | Enable HPA |
+| `autoscaling.minReplicas` | 3 | Min replicas for HPA |
+| `autoscaling.maxReplicas` | 20 | Max replicas for HPA |
+| `networkPolicy.enabled` | true | Enable network policies |
+| `serviceMonitor.enabled` | true | Enable Prometheus ServiceMonitor |
+| `certManager.enabled` | true | Enable cert-manager integration |
+| `config.attestation.enabled` | false | Enable device attestation |
+| `config.redis.enabled` | false | Enable Redis for distributed state |
+| `existingSecret` | "" | Use existing secret instead of creating one |
+
+See `values.yaml` for all available options.
+
 ## Metrics
 
 Hit `:9090/metrics` for Prometheus. You get the usual stuff: request counts, latencies, auth attempts/successes/failures, attestation stats, and GoTrue upstream metrics.
