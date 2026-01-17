@@ -35,6 +35,15 @@ type Config struct {
 	AttestationGCPProjectID       string
 	AttestationGCPCredentialsFile string
 	AttestationRequireStrong      bool
+	AttestationChallengeTimeout   time.Duration
+
+	// redis for distributed attestation state (challenges + iOS key storage)
+	// if not set, uses in-memory stores (single instance only)
+	RedisEnabled   bool
+	RedisAddr      string
+	RedisPassword  string
+	RedisDB        int
+	RedisKeyPrefix string
 
 	TLSEnabled  bool
 	TLSCertFile string
@@ -69,6 +78,13 @@ func Load() (*Config, error) {
 		AttestationGCPProjectID:       os.Getenv("ATTESTATION_GCP_PROJECT_ID"),
 		AttestationGCPCredentialsFile: os.Getenv("ATTESTATION_GCP_CREDENTIALS_FILE"),
 		AttestationRequireStrong:      getEnvBool("ATTESTATION_REQUIRE_STRONG_INTEGRITY", false),
+		AttestationChallengeTimeout:   getEnvDuration("ATTESTATION_CHALLENGE_TIMEOUT", 5*time.Minute),
+
+		RedisEnabled:   getEnvBool("REDIS_ENABLED", false),
+		RedisAddr:      getEnvDefault("REDIS_ADDR", "localhost:6379"),
+		RedisPassword:  os.Getenv("REDIS_PASSWORD"),
+		RedisDB:        getEnvInt("REDIS_DB", 0),
+		RedisKeyPrefix: getEnvDefault("REDIS_KEY_PREFIX", "authproxy:"),
 
 		TLSEnabled:  getEnvBool("TLS_ENABLED", false),
 		TLSCertFile: os.Getenv("TLS_CERT_FILE"),

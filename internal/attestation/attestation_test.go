@@ -33,7 +33,7 @@ func TestVerifierIsEnabled(t *testing.T) {
 
 func TestVerifyDisabled(t *testing.T) {
 	logger, _ := createTestLogger()
-	v, err := NewVerifier(Config{Enabled: false}, logger)
+	v, err := NewVerifier(Config{Enabled: false}, nil, logger)
 	if err != nil {
 		t.Fatalf("NewVerifier() error = %v", err)
 	}
@@ -92,7 +92,7 @@ func createTestLogger() (*logging.Logger, error) {
 
 func TestGenerateChallenge(t *testing.T) {
 	logger, _ := createTestLogger()
-	v, err := NewVerifier(Config{Enabled: false}, logger)
+	v, err := NewVerifier(Config{Enabled: false}, nil, logger)
 	if err != nil {
 		t.Fatalf("NewVerifier() error = %v", err)
 	}
@@ -151,7 +151,7 @@ func TestPlatformConversion(t *testing.T) {
 
 func TestNewVerifierDisabled(t *testing.T) {
 	logger, _ := createTestLogger()
-	v, err := NewVerifier(Config{Enabled: false}, logger)
+	v, err := NewVerifier(Config{Enabled: false}, nil, logger)
 	if err != nil {
 		t.Fatalf("NewVerifier() with disabled config should not error, got %v", err)
 	}
@@ -164,7 +164,7 @@ func TestNewVerifierDisabled(t *testing.T) {
 
 func TestValidateChallengeDisabled(t *testing.T) {
 	logger, _ := createTestLogger()
-	v, err := NewVerifier(Config{Enabled: false}, logger)
+	v, err := NewVerifier(Config{Enabled: false}, nil, logger)
 	if err != nil {
 		t.Fatalf("NewVerifier() error = %v", err)
 	}

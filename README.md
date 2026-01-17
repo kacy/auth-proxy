@@ -131,6 +131,24 @@ ATTESTATION_REQUIRE_STRONG_INTEGRITY=false  # optional, require hardware-backed 
 
 Your apps will need to generate attestation tokens and pass them in the `attestation` field on each request. Check the proto for the `AttestationData` structure.
 
+### iOS Assertions (Ongoing Verification)
+
+After the initial attestation, iOS apps can use **assertions** for subsequent requests. Assertions are signed by the attested device key and include a counter to prevent replay attacks. The server stores the public key after initial attestation and uses it to verify all future assertions.
+
+### Multi-Instance Deployments (Redis)
+
+If you're running multiple server instances with attestation enabled, you need Redis to share attestation state (challenges and iOS key storage):
+
+```bash
+REDIS_ENABLED=true
+REDIS_ADDR=localhost:6379
+REDIS_PASSWORD=your-password
+REDIS_DB=0
+REDIS_KEY_PREFIX=authproxy:
+```
+
+Without Redis, each instance has its own in-memory stores, which will cause attestation failures when requests hit different instances.
+
 Don't need it? Just leave `ATTESTATION_ENABLED` unset or false.
 
 ## Config
@@ -153,6 +171,12 @@ Don't need it? Just leave `ATTESTATION_ENABLED` unset or false.
 | `ATTESTATION_GCP_PROJECT_ID` | - | GCP project for Play Integrity |
 | `ATTESTATION_GCP_CREDENTIALS_FILE` | - | Path to service account JSON |
 | `ATTESTATION_REQUIRE_STRONG_INTEGRITY` | false | Require hardware-backed Android attestation |
+| `ATTESTATION_CHALLENGE_TIMEOUT` | 5m | How long challenges remain valid |
+| `REDIS_ENABLED` | false | Use Redis for distributed attestation state |
+| `REDIS_ADDR` | localhost:6379 | Redis server address |
+| `REDIS_PASSWORD` | - | Redis password |
+| `REDIS_DB` | 0 | Redis database number |
+| `REDIS_KEY_PREFIX` | authproxy: | Prefix for Redis keys |
 
 ## Deploying to Kubernetes
 

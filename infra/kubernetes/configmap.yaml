@@ -15,3 +15,8 @@ data:
   LOG_LEVEL: "info"
   ATTESTATION_ENABLED: "false"
   ATTESTATION_REQUIRE_STRONG_INTEGRITY: "false"
+  ATTESTATION_CHALLENGE_TIMEOUT: "5m"
+  # Redis for distributed attestation state (required for multi-replica with attestation)
+  REDIS_ENABLED: "false"
+  REDIS_DB: "0"
+  REDIS_KEY_PREFIX: "authproxy:"

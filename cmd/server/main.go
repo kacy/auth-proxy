@@ -55,6 +55,19 @@ func main() {
 	)
 	logger.Logger.Info(logging.EmojiDatabase + " gotrue client initialized")
 
+	// Configure Redis if enabled (for distributed attestation state)
+	var redisConfig *attestation.RedisConfig
+	if cfg.RedisEnabled {
+		redisConfig = &attestation.RedisConfig{
+			Enabled:   true,
+			Addr:      cfg.RedisAddr,
+			Password:  cfg.RedisPassword,
+			DB:        cfg.RedisDB,
+			KeyPrefix: cfg.RedisKeyPrefix,
+		}
+		logger.Logger.Info(logging.EmojiDatabase + " redis enabled for attestation state")
+	}
+
 	attestationVerifier, err := attestation.NewVerifier(attestation.Config{
 		Enabled:                cfg.AttestationEnabled,
 		IOSBundleID:            cfg.AttestationIOSBundleID,
@@ -63,7 +76,8 @@ func main() {
 		GCPProjectID:           cfg.AttestationGCPProjectID,
 		GCPCredentialsFile:     cfg.AttestationGCPCredentialsFile,
 		RequireStrongIntegrity: cfg.AttestationRequireStrong,
-	}, logger)
+		ChallengeTimeout:       cfg.AttestationChallengeTimeout,
+	}, redisConfig, logger)
 	if err != nil {
 		logger.Logger.Error(logging.EmojiError + " failed to initialize attestation verifier")
 		os.Exit(1)
