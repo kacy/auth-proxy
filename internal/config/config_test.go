@@ -173,7 +173,6 @@ func TestLoad(t *testing.T) {
 		t.Errorf("GoTrueAnonKey = %q, want %q", cfg.GoTrueAnonKey, "test-anon-key")
 	}
 
-	// Check defaults
 	if cfg.GRPCPort != 50051 {
 		t.Errorf("GRPCPort = %d, want %d", cfg.GRPCPort, 50051)
 	}

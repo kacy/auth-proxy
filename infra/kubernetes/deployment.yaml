@@ -30,8 +30,6 @@ spec:
         runAsUser: 1000
         runAsGroup: 1000
         fsGroup: 1000
-      
-      # Anti-affinity to spread pods across nodes
       affinity:
         podAntiAffinity:
           preferredDuringSchedulingIgnoredDuringExecution:
@@ -96,6 +94,4 @@ spec:
             capabilities:
               drop:
                 - ALL
-
-      # Graceful shutdown
       terminationGracePeriodSeconds: 30
