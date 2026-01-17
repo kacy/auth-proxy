@@ -5,10 +5,13 @@ metadata:
   name: {{ include "auth-proxy.fullname" . }}
   labels:
     {{- include "auth-proxy.labels" . | nindent 4 }}
-  {{- with .Values.ingress.annotations }}
   annotations:
+    {{- with .Values.ingress.annotations }}
     {{- toYaml . | nindent 4 }}
-  {{- end }}
+    {{- end }}
+    {{- if and .Values.ingress.whitelist.enabled .Values.ingress.whitelist.sourceRange }}
+    nginx.ingress.kubernetes.io/whitelist-source-range: {{ .Values.ingress.whitelist.sourceRange | join "," | quote }}
+    {{- end }}
 spec:
   {{- if .Values.ingress.className }}
   ingressClassName: {{ .Values.ingress.className }}
