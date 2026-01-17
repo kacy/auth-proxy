@@ -119,13 +119,14 @@ Set `ATTESTATION_ENABLED=true` and configure the platform(s) you care about:
 
 ```bash
 # iOS
-ATTESTATION_IOS_APP_ID=TEAMID.com.yourcompany.yourapp
-ATTESTATION_IOS_ENV=production
+ATTESTATION_IOS_BUNDLE_ID=com.yourcompany.yourapp
+ATTESTATION_IOS_TEAM_ID=YOURTEAMID
 
 # Android
 ATTESTATION_ANDROID_PACKAGE=com.yourcompany.yourapp
-ATTESTATION_ANDROID_PROJECT=your-gcp-project-id
-ATTESTATION_ANDROID_KEY=service-account-json
+ATTESTATION_GCP_PROJECT_ID=your-gcp-project-id
+ATTESTATION_GCP_CREDENTIALS_FILE=/path/to/service-account.json
+ATTESTATION_REQUIRE_STRONG_INTEGRITY=false  # optional, require hardware-backed attestation
 ```
 
 Your apps will need to generate attestation tokens and pass them in the `attestation` field on each request. Check the proto for the `AttestationData` structure.
@@ -146,11 +147,12 @@ Don't need it? Just leave `ATTESTATION_ENABLED` unset or false.
 | `TLS_CERT_FILE` | - | Cert file path |
 | `TLS_KEY_FILE` | - | Key file path |
 | `ATTESTATION_ENABLED` | false | Require app attestation |
-| `ATTESTATION_IOS_APP_ID` | - | TEAMID.bundle.id |
-| `ATTESTATION_IOS_ENV` | production | production or development |
-| `ATTESTATION_ANDROID_PACKAGE` | - | com.company.app |
-| `ATTESTATION_ANDROID_PROJECT` | - | GCP project |
-| `ATTESTATION_ANDROID_KEY` | - | Service account key |
+| `ATTESTATION_IOS_BUNDLE_ID` | - | iOS bundle ID (com.company.app) |
+| `ATTESTATION_IOS_TEAM_ID` | - | Apple Developer Team ID |
+| `ATTESTATION_ANDROID_PACKAGE` | - | Android package name |
+| `ATTESTATION_GCP_PROJECT_ID` | - | GCP project for Play Integrity |
+| `ATTESTATION_GCP_CREDENTIALS_FILE` | - | Path to service account JSON |
+| `ATTESTATION_REQUIRE_STRONG_INTEGRITY` | false | Require hardware-backed Android attestation |
 
 ## Deploying to Kubernetes
 

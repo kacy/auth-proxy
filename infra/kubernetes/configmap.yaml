@@ -14,4 +14,4 @@ data:
   ENVIRONMENT: "production"
   LOG_LEVEL: "info"
   ATTESTATION_ENABLED: "false"
-  ATTESTATION_IOS_ENV: "production"
+  ATTESTATION_REQUIRE_STRONG_INTEGRITY: "false"

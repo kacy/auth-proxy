@@ -19,6 +19,8 @@ func TestVerifierIsEnabled(t *testing.T) {
 
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
+			// For enabled=true with no platform config, NewVerifier would fail,
+			// so we test with disabled or mock the internal state
 			v := &Verifier{
 				config: Config{Enabled: tt.enabled},
 			}
@@ -30,11 +32,14 @@ func TestVerifierIsEnabled(t *testing.T) {
 }
 
 func TestVerifyDisabled(t *testing.T) {
-	v := &Verifier{
-		config: Config{Enabled: false},
+	logger, _ := createTestLogger()
+	v, err := NewVerifier(Config{Enabled: false}, logger)
+	if err != nil {
+		t.Fatalf("NewVerifier() error = %v", err)
 	}
+	defer v.Close()
 
-	err := v.Verify(context.Background(), nil)
+	err = v.Verify(context.Background(), nil)
 	if err != nil {
 		t.Errorf("Verify() with disabled attestation should return nil, got %v", err)
 	}
@@ -42,10 +47,13 @@ func TestVerifyDisabled(t *testing.T) {
 
 func TestVerifyRequiredButMissing(t *testing.T) {
 	logger, _ := createTestLogger()
+	// Create a verifier with enabled=true but mock the internal state
+	// to avoid needing actual platform config
 	v := &Verifier{
 		config: Config{
-			Enabled:  true,
-			IOSAppID: "com.test.app",
+			Enabled:     true,
+			IOSBundleID: "com.test.app",
+			IOSTeamID:   "TEAM123",
 		},
 		logger: logger,
 	}
@@ -60,8 +68,9 @@ func TestVerifyUnsupportedPlatform(t *testing.T) {
 	logger, _ := createTestLogger()
 	v := &Verifier{
 		config: Config{
-			Enabled:  true,
-			IOSAppID: "com.test.app",
+			Enabled:     true,
+			IOSBundleID: "com.test.app",
+			IOSTeamID:   "TEAM123",
 		},
 		logger: logger,
 	}
@@ -82,15 +91,21 @@ func createTestLogger() (*logging.Logger, error) {
 }
 
 func TestGenerateChallenge(t *testing.T) {
-	v := &Verifier{}
-
-	challenge1 := v.GenerateChallenge()
-	if challenge1 == "" {
-		t.Error("GenerateChallenge() returned empty string")
+	logger, _ := createTestLogger()
+	v, err := NewVerifier(Config{Enabled: false}, logger)
+	if err != nil {
+		t.Fatalf("NewVerifier() error = %v", err)
 	}
+	defer v.Close()
 
-	if len(challenge1) < 10 {
-		t.Error("GenerateChallenge() returned unexpectedly short challenge")
+	// With disabled attestation, challenge generation returns empty string
+	challenge, err := v.GenerateChallenge("user-123")
+	if err != nil {
+		t.Errorf("GenerateChallenge() error = %v", err)
+	}
+	// When disabled, returns empty string
+	if challenge != "" {
+		t.Errorf("GenerateChallenge() with disabled verifier should return empty string")
 	}
 }
 
@@ -131,5 +146,32 @@ func TestPlatformConversion(t *testing.T) {
 				t.Errorf("unexpected platform value: %d", tt.platform)
 			}
 		})
+	}
+}
+
+func TestNewVerifierDisabled(t *testing.T) {
+	logger, _ := createTestLogger()
+	v, err := NewVerifier(Config{Enabled: false}, logger)
+	if err != nil {
+		t.Fatalf("NewVerifier() with disabled config should not error, got %v", err)
+	}
+	defer v.Close()
+
+	if v.IsEnabled() {
+		t.Error("IsEnabled() should return false for disabled verifier")
+	}
+}
+
+func TestValidateChallengeDisabled(t *testing.T) {
+	logger, _ := createTestLogger()
+	v, err := NewVerifier(Config{Enabled: false}, logger)
+	if err != nil {
+		t.Fatalf("NewVerifier() error = %v", err)
+	}
+	defer v.Close()
+
+	// When disabled, validation always returns true
+	if !v.ValidateChallenge("user-123", "any-challenge") {
+		t.Error("ValidateChallenge() with disabled verifier should return true")
 	}
 }

@@ -55,17 +55,23 @@ func main() {
 	)
 	logger.Logger.Info(logging.EmojiDatabase + " gotrue client initialized")
 
-	attestationVerifier := attestation.NewVerifier(attestation.Config{
-		Enabled:            cfg.AttestationEnabled,
-		IOSAppID:           cfg.AttestationIOSAppID,
-		IOSEnv:             cfg.AttestationIOSEnv,
-		AndroidPackageName: cfg.AttestationAndroidPackage,
-		AndroidProjectID:   cfg.AttestationAndroidProject,
-		AndroidServiceKey:  cfg.AttestationAndroidKey,
+	attestationVerifier, err := attestation.NewVerifier(attestation.Config{
+		Enabled:                cfg.AttestationEnabled,
+		IOSBundleID:            cfg.AttestationIOSBundleID,
+		IOSTeamID:              cfg.AttestationIOSTeamID,
+		AndroidPackageName:     cfg.AttestationAndroidPackage,
+		GCPProjectID:           cfg.AttestationGCPProjectID,
+		GCPCredentialsFile:     cfg.AttestationGCPCredentialsFile,
+		RequireStrongIntegrity: cfg.AttestationRequireStrong,
 	}, logger)
+	if err != nil {
+		logger.Logger.Error(logging.EmojiError + " failed to initialize attestation verifier")
+		os.Exit(1)
+	}
+	defer attestationVerifier.Close()
 
 	if cfg.AttestationEnabled {
-		logger.Logger.Info(logging.EmojiAuth + " 🔒 app attestation enabled")
+		logger.Logger.Info(logging.EmojiAuth + " app attestation enabled")
 	} else {
 		logger.Logger.Info(logging.EmojiAuth + " app attestation disabled")
 	}

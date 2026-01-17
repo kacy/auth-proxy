@@ -28,12 +28,13 @@ type Config struct {
 	LogLevel    string
 
 	// attestation stuff - leave disabled if you don't need it
-	AttestationEnabled        bool
-	AttestationIOSAppID       string
-	AttestationIOSEnv         string
-	AttestationAndroidPackage string
-	AttestationAndroidProject string
-	AttestationAndroidKey     string
+	AttestationEnabled            bool
+	AttestationIOSBundleID        string
+	AttestationIOSTeamID          string
+	AttestationAndroidPackage     string
+	AttestationGCPProjectID       string
+	AttestationGCPCredentialsFile string
+	AttestationRequireStrong      bool
 
 	TLSEnabled  bool
 	TLSCertFile string
@@ -61,12 +62,13 @@ func Load() (*Config, error) {
 		Environment: getEnvDefault("ENVIRONMENT", "development"),
 		LogLevel:    getEnvDefault("LOG_LEVEL", "info"),
 
-		AttestationEnabled:        getEnvBool("ATTESTATION_ENABLED", false),
-		AttestationIOSAppID:       os.Getenv("ATTESTATION_IOS_APP_ID"),
-		AttestationIOSEnv:         getEnvDefault("ATTESTATION_IOS_ENV", "production"),
-		AttestationAndroidPackage: os.Getenv("ATTESTATION_ANDROID_PACKAGE"),
-		AttestationAndroidProject: os.Getenv("ATTESTATION_ANDROID_PROJECT"),
-		AttestationAndroidKey:     os.Getenv("ATTESTATION_ANDROID_KEY"),
+		AttestationEnabled:            getEnvBool("ATTESTATION_ENABLED", false),
+		AttestationIOSBundleID:        os.Getenv("ATTESTATION_IOS_BUNDLE_ID"),
+		AttestationIOSTeamID:          os.Getenv("ATTESTATION_IOS_TEAM_ID"),
+		AttestationAndroidPackage:     os.Getenv("ATTESTATION_ANDROID_PACKAGE"),
+		AttestationGCPProjectID:       os.Getenv("ATTESTATION_GCP_PROJECT_ID"),
+		AttestationGCPCredentialsFile: os.Getenv("ATTESTATION_GCP_CREDENTIALS_FILE"),
+		AttestationRequireStrong:      getEnvBool("ATTESTATION_REQUIRE_STRONG_INTEGRITY", false),
 
 		TLSEnabled:  getEnvBool("TLS_ENABLED", false),
 		TLSCertFile: os.Getenv("TLS_CERT_FILE"),
@@ -89,11 +91,19 @@ func (c *Config) Validate() error {
 	}
 
 	if c.AttestationEnabled {
-		hasIOS := c.AttestationIOSAppID != ""
+		hasIOS := c.AttestationIOSBundleID != ""
 		hasAndroid := c.AttestationAndroidPackage != ""
 
 		if !hasIOS && !hasAndroid {
-			return fmt.Errorf("ATTESTATION_ENABLED is true but no platform configured (set ATTESTATION_IOS_APP_ID or ATTESTATION_ANDROID_PACKAGE)")
+			return fmt.Errorf("ATTESTATION_ENABLED is true but no platform configured (set ATTESTATION_IOS_BUNDLE_ID or ATTESTATION_ANDROID_PACKAGE)")
+		}
+
+		if hasIOS && c.AttestationIOSTeamID == "" {
+			return fmt.Errorf("ATTESTATION_IOS_BUNDLE_ID is set but ATTESTATION_IOS_TEAM_ID is missing")
+		}
+
+		if hasAndroid && c.AttestationGCPProjectID == "" {
+			return fmt.Errorf("ATTESTATION_ANDROID_PACKAGE is set but ATTESTATION_GCP_PROJECT_ID is missing")
 		}
 	}
 
