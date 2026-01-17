@@ -3,8 +3,8 @@ package attestation
 import (
 	"context"
 
-	authv1 "github.com/company/auth-proxy/api/gen/auth/v1"
-	"github.com/company/auth-proxy/internal/logging"
+	authv1 "github.com/kacy/auth-proxy/api/gen/auth/v1"
+	"github.com/kacy/auth-proxy/internal/logging"
 	"go.uber.org/zap"
 	"google.golang.org/grpc"
 	"google.golang.org/grpc/codes"

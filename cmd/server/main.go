@@ -18,13 +18,13 @@ import (
 	"google.golang.org/grpc/keepalive"
 	"google.golang.org/grpc/reflection"
 
-	authv1 "github.com/company/auth-proxy/api/gen/auth/v1"
-	"github.com/company/auth-proxy/internal/attestation"
-	"github.com/company/auth-proxy/internal/config"
-	"github.com/company/auth-proxy/internal/gotrue"
-	"github.com/company/auth-proxy/internal/logging"
-	"github.com/company/auth-proxy/internal/metrics"
-	"github.com/company/auth-proxy/internal/service"
+	authv1 "github.com/kacy/auth-proxy/api/gen/auth/v1"
+	"github.com/kacy/auth-proxy/internal/attestation"
+	"github.com/kacy/auth-proxy/internal/config"
+	"github.com/kacy/auth-proxy/internal/gotrue"
+	"github.com/kacy/auth-proxy/internal/logging"
+	"github.com/kacy/auth-proxy/internal/metrics"
+	"github.com/kacy/auth-proxy/internal/service"
 )
 
 func main() {

@@ -3,9 +3,9 @@ package service
 import (
 	"context"
 
-	authv1 "github.com/company/auth-proxy/api/gen/auth/v1"
-	"github.com/company/auth-proxy/internal/gotrue"
-	"github.com/company/auth-proxy/internal/logging"
+	authv1 "github.com/kacy/auth-proxy/api/gen/auth/v1"
+	"github.com/kacy/auth-proxy/internal/gotrue"
+	"github.com/kacy/auth-proxy/internal/logging"
 )
 
 type HealthService struct {

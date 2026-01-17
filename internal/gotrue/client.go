@@ -9,8 +9,8 @@ import (
 	"net/http"
 	"time"
 
-	"github.com/company/auth-proxy/internal/logging"
-	"github.com/company/auth-proxy/internal/metrics"
+	"github.com/kacy/auth-proxy/internal/logging"
+	"github.com/kacy/auth-proxy/internal/metrics"
 	"go.uber.org/zap"
 )
 

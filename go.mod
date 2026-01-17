@@ -1,4 +1,4 @@
-module github.com/company/auth-proxy
+module github.com/kacy/auth-proxy
 
 go 1.25.5
 

@@ -2,7 +2,7 @@ syntax = "proto3";
 
 package auth.v1;
 
-option go_package = "github.com/company/auth-proxy/api/gen/auth/v1;authv1";
+option go_package = "github.com/kacy/auth-proxy/api/gen/auth/v1;authv1";
 
 service AuthService {
   rpc SignUp(SignUpRequest) returns (AuthResponse);

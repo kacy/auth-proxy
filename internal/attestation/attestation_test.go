@@ -4,7 +4,7 @@ import (
 	"context"
 	"testing"
 
-	"github.com/company/auth-proxy/internal/logging"
+	"github.com/kacy/auth-proxy/internal/logging"
 )
 
 func TestVerifierIsEnabled(t *testing.T) {

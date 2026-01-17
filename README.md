@@ -2,37 +2,6 @@
 
 gRPC auth service that sits in front of GoTrue/Supabase. Handles email/password, Google, and Apple sign-in for your mobile apps.
 
-## Before You Start
-
-You'll need to swap out placeholder values in a few files:
-
-**Must change:**
-- `go.mod` - update `github.com/company/auth-proxy` to your module path
-- `infra/kubernetes/secret.yaml` - add your GoTrue URL and anon key
-- `infra/kubernetes/ingress.yaml` - set your domain
-- `infra/kubernetes/cert-manager.yaml` - set your domain and email
-- `.env` - add your GoTrue anon key for local dev
-
-**Only if you need them:**
-- Google OAuth creds in `secret.yaml`
-- Apple OAuth creds in `secret.yaml`  
-- App attestation config (iOS App ID, Android package, GCP project)
-
-Quick sed commands to swap the module name and domain:
-
-```bash
-# module name
-find . -type f -name "*.go" -exec sed -i '' 's|github.com/company/auth-proxy|github.com/yourorg/auth-proxy|g' {} +
-sed -i '' 's|github.com/company/auth-proxy|github.com/yourorg/auth-proxy|g' go.mod
-
-# domain
-sed -i '' 's|auth.yourdomain.com|auth.yourrealdomain.com|g' infra/kubernetes/ingress.yaml infra/kubernetes/cert-manager.yaml
-```
-
-(On Linux, drop the `''` after `-i`)
-
----
-
 ## What's in the box
 
 - gRPC API with email auth, Google, and Apple sign-in

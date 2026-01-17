@@ -13,7 +13,7 @@ import (
 	attestredis "github.com/kacy/device-attestation/redis"
 	"github.com/redis/go-redis/v9"
 
-	"github.com/company/auth-proxy/internal/logging"
+	"github.com/kacy/auth-proxy/internal/logging"
 	"go.uber.org/zap"
 )
 
