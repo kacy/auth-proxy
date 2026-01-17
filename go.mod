@@ -1,6 +1,6 @@
 module github.com/company/auth-proxy
 
-go 1.23.0
+go 1.25.5
 
 require (
 	github.com/grpc-ecosystem/go-grpc-prometheus v1.2.0
