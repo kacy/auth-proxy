@@ -1,5 +1,5 @@
 # Air configuration for hot reload during development
-# Install: go install github.com/cosmtrek/air@latest
+# Install: go install github.com/air-verse/air@latest
 
 root = "."
 testdata_dir = "testdata"
