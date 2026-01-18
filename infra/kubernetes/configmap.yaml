@@ -15,6 +15,8 @@ data:
   ENVIRONMENT: "production"
   LOG_LEVEL: "info"
   LOG_REQUEST_BODIES: "false"
+  # Security - require clients to send anon key in X-API-Key header
+  REQUIRE_API_KEY: "true"
   ATTESTATION_ENABLED: "false"
   ATTESTATION_REQUIRE_STRONG_INTEGRITY: "false"
   ATTESTATION_CHALLENGE_TIMEOUT: "5m"

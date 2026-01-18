@@ -91,6 +91,9 @@ config:
   logLevel: "info"
   logRequestBodies: "false"
 
+  # Security - require clients to send anon key in X-API-Key header
+  requireApiKey: "true"
+
   # Enable attestation in production
   attestation:
     enabled: true

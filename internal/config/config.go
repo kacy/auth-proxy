@@ -28,6 +28,9 @@ type Config struct {
 	LogRequestBodies bool
 	MaxLogBodySize   int64
 
+	// API key validation - requires clients to send the Supabase anon key
+	RequireAPIKey bool
+
 	// Attestation - leave disabled if you don't need it
 	AttestationEnabled            bool
 	AttestationIOSBundleID        string
@@ -69,6 +72,8 @@ func Load() (*Config, error) {
 
 		LogRequestBodies: getEnvBool("LOG_REQUEST_BODIES", false),
 		MaxLogBodySize:   int64(getEnvInt("MAX_LOG_BODY_SIZE", 10240)),
+
+		RequireAPIKey: getEnvBool("REQUIRE_API_KEY", true),
 
 		AttestationEnabled:            getEnvBool("ATTESTATION_ENABLED", false),
 		AttestationIOSBundleID:        os.Getenv("ATTESTATION_IOS_BUNDLE_ID"),

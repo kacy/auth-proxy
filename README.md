@@ -5,6 +5,7 @@ HTTP reverse proxy for Supabase Auth (GoTrue). Sits in front of your Supabase pr
 ## What's in the box
 
 - HTTP reverse proxy that forwards requests to Supabase Auth API
+- API key validation - clients must prove they have your app's Supabase config
 - Optional app attestation (iOS App Attest / Android Play Integrity) to lock things down
 - Request/response logging with fine-grained control
 - Prometheus metrics, structured logging
@@ -50,28 +51,43 @@ The proxy forwards all requests to Supabase Auth's REST API. Just point your cli
 ### Quick test with curl
 
 ```bash
-# health check
+# health check (no API key required)
 curl http://localhost:8080/health
 
-# sign up (same payload as Supabase Auth API)
+# sign up - note the X-API-Key header with your Supabase anon key
 curl -X POST http://localhost:8080/auth/v1/signup \
   -H "Content-Type: application/json" \
+  -H "X-API-Key: your-supabase-anon-key" \
   -d '{"email": "user@example.com", "password": "securepassword123"}'
 
 # sign in
 curl -X POST http://localhost:8080/auth/v1/token?grant_type=password \
   -H "Content-Type: application/json" \
+  -H "X-API-Key: your-supabase-anon-key" \
   -d '{"email": "user@example.com", "password": "securepassword123"}'
 
 # OAuth (Google)
 curl -X POST http://localhost:8080/auth/v1/token?grant_type=id_token \
   -H "Content-Type: application/json" \
+  -H "X-API-Key: your-supabase-anon-key" \
   -d '{"provider": "google", "id_token": "your-google-id-token"}'
 
 # refresh token
 curl -X POST http://localhost:8080/auth/v1/token?grant_type=refresh_token \
   -H "Content-Type: application/json" \
+  -H "X-API-Key: your-supabase-anon-key" \
   -d '{"refresh_token": "your-refresh-token"}'
+```
+
+## API Key Validation
+
+By default, the proxy requires clients to send the Supabase anon key in the `X-API-Key` header. This ensures that only clients with your app's configuration can use the proxy.
+
+The proxy compares the provided key against `GOTRUE_ANON_KEY` using constant-time comparison to prevent timing attacks.
+
+To disable (not recommended for production):
+```bash
+REQUIRE_API_KEY=false
 ```
 
 ## App Attestation
@@ -126,6 +142,7 @@ curl -X POST http://localhost:8080/attestation/challenge \
 ```bash
 curl -X POST http://localhost:8080/auth/v1/token?grant_type=password \
   -H "Content-Type: application/json" \
+  -H "X-API-Key: your-supabase-anon-key" \
   -H "X-Platform: ios" \
   -H "X-Attestation: <your-attestation-token>" \
   -H "X-Attestation-Key-ID: <your-key-id>" \
@@ -164,6 +181,7 @@ Don't need it? Just leave `ATTESTATION_ENABLED` unset or false.
 | `LOG_LEVEL` | info | debug/info/warn/error |
 | `LOG_REQUEST_BODIES` | false | Log request/response bodies (careful with sensitive data) |
 | `ENVIRONMENT` | development | development or production |
+| `REQUIRE_API_KEY` | true | Require X-API-Key header matching GOTRUE_ANON_KEY |
 | `TLS_ENABLED` | false | Turn on TLS |
 | `TLS_CERT_FILE` | - | Cert file path |
 | `TLS_KEY_FILE` | - | Key file path |

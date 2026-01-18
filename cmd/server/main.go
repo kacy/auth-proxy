@@ -93,6 +93,17 @@ func main() {
 		MaxBodySize: cfg.MaxLogBodySize,
 	})
 
+	apiKeyMiddleware := middleware.NewAPIKeyMiddleware(middleware.APIKeyConfig{
+		ExpectedKey: cfg.GoTrueAnonKey,
+		Enabled:     cfg.RequireAPIKey,
+	}, logger)
+
+	if cfg.RequireAPIKey {
+		logger.Logger.Info(logging.EmojiAuth + " API key validation enabled")
+	} else {
+		logger.Logger.Info(logging.EmojiAuth + " API key validation disabled")
+	}
+
 	attestationMiddleware := middleware.NewAttestationMiddleware(attestationVerifier, logger)
 
 	// Create router/mux
@@ -102,15 +113,17 @@ func main() {
 	mux.HandleFunc("/health", healthHandler)
 	mux.HandleFunc("/healthz", healthHandler)
 
-	// Challenge endpoint for attestation (no attestation required for this)
+	// Challenge endpoint for attestation (requires API key but not attestation)
 	mux.HandleFunc("/attestation/challenge", middleware.ChallengeHandler(attestationVerifier, logger))
 
 	// All other requests go to the proxy with attestation middleware
 	proxyHandler := attestationMiddleware.Middleware(authProxy)
 	mux.Handle("/", proxyHandler)
 
-	// Apply global middleware: metrics -> logging -> handler
+	// Apply global middleware: metrics -> logging -> apikey -> handler
+	// Order matters: outermost (metrics) runs first, innermost (handler) runs last
 	var handler http.Handler = mux
+	handler = apiKeyMiddleware.Middleware(handler)
 	handler = loggingMiddleware.Middleware(handler)
 	handler = httpMetrics.Middleware(handler)
 
