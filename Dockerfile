@@ -27,5 +27,5 @@ COPY --from=builder /auth-proxy /usr/local/bin/auth-proxy
 RUN chown appuser:appgroup /usr/local/bin/auth-proxy
 
 USER appuser
-EXPOSE 50051 9090
+EXPOSE 8080 9090
 ENTRYPOINT ["/usr/local/bin/auth-proxy"]

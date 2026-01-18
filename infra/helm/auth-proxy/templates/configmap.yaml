@@ -5,13 +5,15 @@ metadata:
   labels:
     {{- include "auth-proxy.labels" . | nindent 4 }}
 data:
-  GRPC_PORT: {{ .Values.config.grpcPort | quote }}
+  HTTP_PORT: {{ .Values.config.httpPort | quote }}
   METRICS_PORT: {{ .Values.config.metricsPort | quote }}
   SERVER_READ_TIMEOUT: {{ .Values.config.serverReadTimeout | quote }}
   SERVER_WRITE_TIMEOUT: {{ .Values.config.serverWriteTimeout | quote }}
+  SERVER_IDLE_TIMEOUT: {{ .Values.config.serverIdleTimeout | quote }}
   GOTRUE_TIMEOUT: {{ .Values.config.gotrueTimeout | quote }}
   ENVIRONMENT: {{ .Values.config.environment | quote }}
   LOG_LEVEL: {{ .Values.config.logLevel | quote }}
+  LOG_REQUEST_BODIES: {{ .Values.config.logRequestBodies | quote }}
   ATTESTATION_ENABLED: {{ .Values.config.attestation.enabled | quote }}
   ATTESTATION_REQUIRE_STRONG_INTEGRITY: {{ .Values.config.attestation.requireStrongIntegrity | quote }}
   ATTESTATION_CHALLENGE_TIMEOUT: {{ .Values.config.attestation.challengeTimeout | quote }}

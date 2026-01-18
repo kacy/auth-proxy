@@ -49,8 +49,8 @@ spec:
           imagePullPolicy: Always
           
           ports:
-            - name: grpc
-              containerPort: 50051
+            - name: http
+              containerPort: 8080
               protocol: TCP
             - name: metrics
               containerPort: 9090
@@ -71,18 +71,18 @@ spec:
               memory: 256Mi
           
           livenessProbe:
-            grpc:
-              port: 50051
-              service: auth.v1.HealthService
+            httpGet:
+              path: /health
+              port: http
             initialDelaySeconds: 5
             periodSeconds: 10
             timeoutSeconds: 3
             failureThreshold: 3
           
           readinessProbe:
-            grpc:
-              port: 50051
-              service: auth.v1.HealthService
+            httpGet:
+              path: /health
+              port: http
             initialDelaySeconds: 5
             periodSeconds: 5
             timeoutSeconds: 3

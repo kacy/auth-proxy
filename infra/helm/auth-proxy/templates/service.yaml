@@ -9,9 +9,9 @@ spec:
   selector:
     {{- include "auth-proxy.selectorLabels" . | nindent 4 }}
   ports:
-    - name: grpc
-      port: {{ .Values.service.grpcPort }}
-      targetPort: grpc
+    - name: http
+      port: {{ .Values.service.httpPort }}
+      targetPort: http
       protocol: TCP
     - name: metrics
       port: {{ .Values.service.metricsPort }}

@@ -1,4 +1,4 @@
-.PHONY: all build run test lint clean docker docker-build docker-run proto help helm-lint helm-template helm-package helm-push
+.PHONY: all build run test lint clean docker docker-build docker-run help helm-lint helm-template helm-package helm-push
 
 BINARY_NAME=auth-proxy
 VERSION=$(shell git describe --tags --always --dirty 2>/dev/null || echo "dev")
@@ -31,17 +31,6 @@ run: build
 ## run-dev: hot reload (needs air)
 run-dev:
 	air
-
-## proto: generate from proto files
-proto:
-	@mkdir -p api/gen/auth/v1
-	protoc --go_out=api/gen --go_opt=paths=source_relative \
-		--go-grpc_out=api/gen --go-grpc_opt=paths=source_relative \
-		-Iapi/proto api/proto/auth.proto
-
-## proto-buf: generate with buf
-proto-buf:
-	buf generate
 
 ## test: run tests
 test:
@@ -81,7 +70,7 @@ docker-build:
 
 ## docker-run: run container
 docker-run:
-	docker run --rm -p 50051:50051 -p 9090:9090 \
+	docker run --rm -p 8080:8080 -p 9090:9090 \
 		-e GOTRUE_URL=http://host.docker.internal:9999 \
 		-e GOTRUE_ANON_KEY=your-anon-key \
 		$(DOCKER_IMAGE):latest
@@ -103,18 +92,15 @@ k8s-delete:
 k8s-logs:
 	kubectl logs -f -l app=auth-proxy --all-containers=true -n auth-proxy
 
-## grpc-test: health check via grpcurl
-grpc-test:
-	grpcurl -plaintext localhost:50051 auth.v1.HealthService/Check
+## http-test: health check via curl
+http-test:
+	curl -s http://localhost:8080/health | jq .
 
 ## install-tools: install dev dependencies
 install-tools:
 	go install github.com/golangci/golangci-lint/cmd/golangci-lint@latest
 	go install github.com/air-verse/air
 	go install golang.org/x/tools/cmd/goimports@latest
-	go install google.golang.org/protobuf/cmd/protoc-gen-go@latest
-	go install google.golang.org/grpc/cmd/protoc-gen-go-grpc@latest
-	go install github.com/fullstorydev/grpcurl/cmd/grpcurl@latest
 
 ## check: lint + test + build
 check: lint test build

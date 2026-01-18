@@ -37,7 +37,8 @@ securityContext:
 
 service:
   type: ClusterIP
-  grpcPort: 50051
+  httpPort: 80
+  containerPort: 8080
   metricsPort: 9090
 
 # Resource limits
@@ -84,11 +85,9 @@ ingress:
   enabled: true
   className: nginx
   annotations:
-    nginx.ingress.kubernetes.io/backend-protocol: "GRPC"
     nginx.ingress.kubernetes.io/ssl-redirect: "true"
-    nginx.ingress.kubernetes.io/http2-push-preload: "true"
-    nginx.ingress.kubernetes.io/proxy-read-timeout: "3600"
-    nginx.ingress.kubernetes.io/proxy-send-timeout: "3600"
+    nginx.ingress.kubernetes.io/proxy-read-timeout: "60"
+    nginx.ingress.kubernetes.io/proxy-send-timeout: "60"
     nginx.ingress.kubernetes.io/proxy-connect-timeout: "10"
     nginx.ingress.kubernetes.io/limit-rps: "100"
     nginx.ingress.kubernetes.io/limit-connections: "50"
@@ -121,18 +120,18 @@ serviceMonitor:
 
 # Probes
 livenessProbe:
-  grpc:
-    port: 50051
-    service: auth.v1.HealthService
+  httpGet:
+    path: /health
+    port: http
   initialDelaySeconds: 5
   periodSeconds: 10
   timeoutSeconds: 3
   failureThreshold: 3
 
 readinessProbe:
-  grpc:
-    port: 50051
-    service: auth.v1.HealthService
+  httpGet:
+    path: /health
+    port: http
   initialDelaySeconds: 5
   periodSeconds: 5
   timeoutSeconds: 3
@@ -170,13 +169,15 @@ terminationGracePeriodSeconds: 30
 
 config:
   # Server settings
-  grpcPort: "50051"
+  httpPort: "8080"
   metricsPort: "9090"
   serverReadTimeout: "10s"
-  serverWriteTimeout: "10s"
+  serverWriteTimeout: "30s"
+  serverIdleTimeout: "60s"
   gotrueTimeout: "30s"
   environment: "production"
   logLevel: "info"
+  logRequestBodies: "false"
 
   # Attestation settings
   attestation:
@@ -195,14 +196,6 @@ secrets:
   # Required
   gotrueUrl: ""
   gotrueAnonKey: ""
-
-  # Optional - OAuth
-  googleClientId: ""
-  googleClientSecret: ""
-  appleClientId: ""
-  appleTeamId: ""
-  appleKeyId: ""
-  applePrivateKey: ""
 
   # Optional - Attestation
   attestationIosBundleId: ""

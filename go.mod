@@ -3,13 +3,10 @@ module github.com/kacy/auth-proxy
 go 1.25.5
 
 require (
-	github.com/grpc-ecosystem/go-grpc-prometheus v1.2.0
 	github.com/kacy/device-attestation v0.1.1
 	github.com/prometheus/client_golang v1.19.1
 	github.com/redis/go-redis/v9 v9.17.2
 	go.uber.org/zap v1.27.0
-	google.golang.org/grpc v1.78.0
-	google.golang.org/protobuf v1.36.11
 )
 
 require (
@@ -44,4 +41,6 @@ require (
 	golang.org/x/text v0.32.0 // indirect
 	google.golang.org/api v0.260.0 // indirect
 	google.golang.org/genproto/googleapis/rpc v0.0.0-20251222181119-0a764e51fe1b // indirect
+	google.golang.org/grpc v1.78.0 // indirect
+	google.golang.org/protobuf v1.36.11 // indirect
 )

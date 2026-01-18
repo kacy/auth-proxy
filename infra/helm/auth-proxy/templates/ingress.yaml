@@ -32,5 +32,5 @@ spec:
               service:
                 name: {{ include "auth-proxy.fullname" . }}
                 port:
-                  name: grpc
+                  name: http
 {{- end }}

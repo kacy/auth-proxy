@@ -21,7 +21,7 @@ spec:
               kubernetes.io/metadata.name: {{ .Values.networkPolicy.ingressNamespace }}
       ports:
         - protocol: TCP
-          port: {{ .Values.service.grpcPort }}
+          port: {{ .Values.service.containerPort }}
 
     # Allow traffic from Prometheus (for scraping)
     - from:
@@ -37,7 +37,7 @@ spec:
         - podSelector: {}
       ports:
         - protocol: TCP
-          port: {{ .Values.service.grpcPort }}
+          port: {{ .Values.service.containerPort }}
         - protocol: TCP
           port: {{ .Values.service.metricsPort }}
 

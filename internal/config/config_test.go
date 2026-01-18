@@ -173,8 +173,8 @@ func TestLoad(t *testing.T) {
 		t.Errorf("GoTrueAnonKey = %q, want %q", cfg.GoTrueAnonKey, "test-anon-key")
 	}
 
-	if cfg.GRPCPort != 50051 {
-		t.Errorf("GRPCPort = %d, want %d", cfg.GRPCPort, 50051)
+	if cfg.HTTPPort != 8080 {
+		t.Errorf("HTTPPort = %d, want %d", cfg.HTTPPort, 8080)
 	}
 
 	if cfg.MetricsPort != 9090 {

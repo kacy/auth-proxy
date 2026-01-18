@@ -53,11 +53,9 @@ ingress:
   enabled: true
   className: nginx
   annotations:
-    nginx.ingress.kubernetes.io/backend-protocol: "GRPC"
     nginx.ingress.kubernetes.io/ssl-redirect: "true"
-    nginx.ingress.kubernetes.io/http2-push-preload: "true"
-    nginx.ingress.kubernetes.io/proxy-read-timeout: "3600"
-    nginx.ingress.kubernetes.io/proxy-send-timeout: "3600"
+    nginx.ingress.kubernetes.io/proxy-read-timeout: "60"
+    nginx.ingress.kubernetes.io/proxy-send-timeout: "60"
     nginx.ingress.kubernetes.io/proxy-connect-timeout: "10"
     nginx.ingress.kubernetes.io/limit-rps: "100"
     nginx.ingress.kubernetes.io/limit-connections: "50"
@@ -83,13 +81,15 @@ serviceMonitor:
 
 # Application Configuration
 config:
-  grpcPort: "50051"
+  httpPort: "8080"
   metricsPort: "9090"
   serverReadTimeout: "10s"
-  serverWriteTimeout: "10s"
+  serverWriteTimeout: "30s"
+  serverIdleTimeout: "60s"
   gotrueTimeout: "30s"
   environment: "production"
   logLevel: "info"
+  logRequestBodies: "false"
 
   # Enable attestation in production
   attestation:
@@ -109,14 +109,6 @@ secrets:
   # Required - override with actual values
   gotrueUrl: ""       # --set secrets.gotrueUrl=https://...
   gotrueAnonKey: ""   # --set secrets.gotrueAnonKey=...
-
-  # Optional - OAuth providers
-  googleClientId: ""
-  googleClientSecret: ""
-  appleClientId: ""
-  appleTeamId: ""
-  appleKeyId: ""
-  applePrivateKey: ""
 
   # Required when attestation is enabled
   attestationIosBundleId: "com.yourcompany.yourapp"

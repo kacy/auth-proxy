@@ -8,26 +8,27 @@ import (
 )
 
 type Config struct {
-	GRPCPort           int
+	// HTTP server settings
+	HTTPPort           int
 	ServerReadTimeout  time.Duration
 	ServerWriteTimeout time.Duration
+	ServerIdleTimeout  time.Duration
 
+	// Supabase/GoTrue settings
 	GoTrueURL     string
 	GoTrueAnonKey string
 	GoTrueTimeout time.Duration
 
-	GoogleClientID     string
-	GoogleClientSecret string
-	AppleClientID      string
-	AppleTeamID        string
-	AppleKeyID         string
-	ApplePrivateKey    string
-
+	// Metrics
 	MetricsPort int
 	Environment string
 	LogLevel    string
 
-	// attestation stuff - leave disabled if you don't need it
+	// Logging settings
+	LogRequestBodies bool
+	MaxLogBodySize   int64
+
+	// Attestation - leave disabled if you don't need it
 	AttestationEnabled            bool
 	AttestationIOSBundleID        string
 	AttestationIOSTeamID          string
@@ -37,14 +38,15 @@ type Config struct {
 	AttestationRequireStrong      bool
 	AttestationChallengeTimeout   time.Duration
 
-	// redis for distributed attestation state (challenges + iOS key storage)
-	// if not set, uses in-memory stores (single instance only)
+	// Redis for distributed attestation state (challenges + iOS key storage)
+	// If not set, uses in-memory stores (single instance only)
 	RedisEnabled   bool
 	RedisAddr      string
 	RedisPassword  string
 	RedisDB        int
 	RedisKeyPrefix string
 
+	// TLS
 	TLSEnabled  bool
 	TLSCertFile string
 	TLSKeyFile  string
@@ -52,24 +54,21 @@ type Config struct {
 
 func Load() (*Config, error) {
 	cfg := &Config{
-		GRPCPort:           getEnvInt("GRPC_PORT", 50051),
+		HTTPPort:           getEnvInt("HTTP_PORT", 8080),
 		ServerReadTimeout:  getEnvDuration("SERVER_READ_TIMEOUT", 10*time.Second),
-		ServerWriteTimeout: getEnvDuration("SERVER_WRITE_TIMEOUT", 10*time.Second),
+		ServerWriteTimeout: getEnvDuration("SERVER_WRITE_TIMEOUT", 30*time.Second),
+		ServerIdleTimeout:  getEnvDuration("SERVER_IDLE_TIMEOUT", 60*time.Second),
 
 		GoTrueURL:     getEnvRequired("GOTRUE_URL"),
 		GoTrueAnonKey: getEnvRequired("GOTRUE_ANON_KEY"),
 		GoTrueTimeout: getEnvDuration("GOTRUE_TIMEOUT", 30*time.Second),
 
-		GoogleClientID:     os.Getenv("GOOGLE_CLIENT_ID"),
-		GoogleClientSecret: os.Getenv("GOOGLE_CLIENT_SECRET"),
-		AppleClientID:      os.Getenv("APPLE_CLIENT_ID"),
-		AppleTeamID:        os.Getenv("APPLE_TEAM_ID"),
-		AppleKeyID:         os.Getenv("APPLE_KEY_ID"),
-		ApplePrivateKey:    os.Getenv("APPLE_PRIVATE_KEY"),
-
 		MetricsPort: getEnvInt("METRICS_PORT", 9090),
 		Environment: getEnvDefault("ENVIRONMENT", "development"),
 		LogLevel:    getEnvDefault("LOG_LEVEL", "info"),
+
+		LogRequestBodies: getEnvBool("LOG_REQUEST_BODIES", false),
+		MaxLogBodySize:   int64(getEnvInt("MAX_LOG_BODY_SIZE", 10240)),
 
 		AttestationEnabled:            getEnvBool("ATTESTATION_ENABLED", false),
 		AttestationIOSBundleID:        os.Getenv("ATTESTATION_IOS_BUNDLE_ID"),
