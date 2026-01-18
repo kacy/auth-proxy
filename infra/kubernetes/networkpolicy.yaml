@@ -21,7 +21,7 @@ spec:
               kubernetes.io/metadata.name: ingress-nginx
       ports:
         - protocol: TCP
-          port: 50051
+          port: 8080
     
     # Allow traffic from Prometheus (for scraping)
     - from:
@@ -37,7 +37,7 @@ spec:
         - podSelector: {}
       ports:
         - protocol: TCP
-          port: 50051
+          port: 8080
         - protocol: TCP
           port: 9090
 

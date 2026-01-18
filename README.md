@@ -1,35 +1,37 @@
 # Auth Proxy
 
-gRPC auth service that sits in front of GoTrue/Supabase. Handles email/password, Google, and Apple sign-in for your mobile apps.
+HTTP reverse proxy for Supabase Auth (GoTrue). Sits in front of your Supabase project and gives you fine-grained control over authentication requests with optional device attestation.
 
 ## What's in the box
 
-- gRPC API with email auth, Google, and Apple sign-in
-- Optional app attestation (iOS App Attest / Android Play Integrity) if you want to lock things down
+- HTTP reverse proxy that forwards requests to Supabase Auth API
+- Optional app attestation (iOS App Attest / Android Play Integrity) to lock things down
+- Request/response logging with fine-grained control
 - Prometheus metrics, structured logging
 - K8s manifests with HPA, PDB, network policies, cert-manager integration
 
 ## How it fits together
 
 ```
-Mobile App ──gRPC──▶ Auth Proxy ──HTTP──▶ GoTrue (internal)
+Any Client ──HTTP──▶ Auth Proxy ──HTTP──▶ Supabase Auth
      │                    │
-     │                    └──▶ Prometheus
+     │                    ├──▶ Prometheus metrics
+     │                    └──▶ Request logging
      │
      └── attestation verification (optional)
 ```
 
+Your clients make the same HTTP requests they would to Supabase directly, but through your proxy. You get full visibility and control.
+
 ## Getting started
 
-You'll need Go 1.22+ and `protoc`. Docker and kubectl if you're deploying.
+You'll need Go 1.22+. Docker and kubectl if you're deploying.
 
 ```bash
 git clone <repo-url>
 cd auth-proxy
 
-make install-tools      # grab protoc plugins etc
-cp .env.example .env    # fill in your GoTrue creds
-make proto              # generate pb code (if needed)
+cp .env.example .env    # fill in your Supabase creds
 make run                # fire it up
 make test               # run the tests
 ```
@@ -43,41 +45,33 @@ make docker-run
 
 ## API
 
-**AuthService** - `SignUp`, `SignIn`, `SignInWithGoogle`, `SignInWithApple`, `RefreshToken`, `Logout`
+The proxy forwards all requests to Supabase Auth's REST API. Just point your client at the proxy instead of `https://your-project.supabase.co`.
 
-**HealthService** - `Check` (pings GoTrue to make sure it's up)
-
-Full proto def is in `api/proto/auth.proto`.
-
-### Quick test with grpcurl
+### Quick test with curl
 
 ```bash
 # health check
-grpcurl -plaintext localhost:50051 auth.v1.HealthService/Check
+curl http://localhost:8080/health
 
-# sign up
-grpcurl -plaintext -d '{"email": "user@example.com", "password": "securepassword123"}' \
-  localhost:50051 auth.v1.AuthService/SignUp
+# sign up (same payload as Supabase Auth API)
+curl -X POST http://localhost:8080/auth/v1/signup \
+  -H "Content-Type: application/json" \
+  -d '{"email": "user@example.com", "password": "securepassword123"}'
 
 # sign in
-grpcurl -plaintext -d '{"email": "user@example.com", "password": "securepassword123"}' \
-  localhost:50051 auth.v1.AuthService/SignIn
+curl -X POST http://localhost:8080/auth/v1/token?grant_type=password \
+  -H "Content-Type: application/json" \
+  -d '{"email": "user@example.com", "password": "securepassword123"}'
 
-# google
-grpcurl -plaintext -d '{"id_token": "your-google-id-token"}' \
-  localhost:50051 auth.v1.AuthService/SignInWithGoogle
+# OAuth (Google)
+curl -X POST http://localhost:8080/auth/v1/token?grant_type=id_token \
+  -H "Content-Type: application/json" \
+  -d '{"provider": "google", "id_token": "your-google-id-token"}'
 
-# with attestation
-grpcurl -plaintext -d '{
-  "email": "user@example.com",
-  "password": "securepassword123",
-  "attestation": {
-    "platform": "PLATFORM_IOS",
-    "token": "your-attestation-token",
-    "key_id": "your-key-id",
-    "challenge": "your-challenge"
-  }
-}' localhost:50051 auth.v1.AuthService/SignIn
+# refresh token
+curl -X POST http://localhost:8080/auth/v1/token?grant_type=refresh_token \
+  -H "Content-Type: application/json" \
+  -d '{"refresh_token": "your-refresh-token"}'
 ```
 
 ## App Attestation
@@ -98,7 +92,46 @@ ATTESTATION_GCP_CREDENTIALS_FILE=/path/to/service-account.json
 ATTESTATION_REQUIRE_STRONG_INTEGRITY=false  # optional, require hardware-backed attestation
 ```
 
-Your apps will need to generate attestation tokens and pass them in the `attestation` field on each request. Check the proto for the `AttestationData` structure.
+### Attestation Headers
+
+When attestation is enabled, clients must include these headers:
+
+**Initial attestation:**
+```
+X-Platform: ios (or android)
+X-Attestation: <attestation-token>
+X-Attestation-Key-ID: <key-id>
+X-Attestation-Challenge: <challenge>
+```
+
+**iOS assertions (subsequent requests):**
+```
+X-Attestation-Assertion: <assertion>
+X-Attestation-Key-ID: <key-id>
+X-Attestation-Client-Data: <client-data>
+```
+
+### Getting a Challenge
+
+Before attesting, clients need to get a challenge:
+
+```bash
+curl -X POST http://localhost:8080/attestation/challenge \
+  -H "Content-Type: application/json" \
+  -d '{"identifier": "device-unique-id"}'
+```
+
+### Example with attestation
+
+```bash
+curl -X POST http://localhost:8080/auth/v1/token?grant_type=password \
+  -H "Content-Type: application/json" \
+  -H "X-Platform: ios" \
+  -H "X-Attestation: <your-attestation-token>" \
+  -H "X-Attestation-Key-ID: <your-key-id>" \
+  -H "X-Attestation-Challenge: <your-challenge>" \
+  -d '{"email": "user@example.com", "password": "securepassword123"}'
+```
 
 ### iOS Assertions (Ongoing Verification)
 
@@ -124,11 +157,12 @@ Don't need it? Just leave `ATTESTATION_ENABLED` unset or false.
 
 | Variable | Default | What it does |
 |----------|---------|--------------|
-| `GOTRUE_URL` | required | Where GoTrue lives |
-| `GOTRUE_ANON_KEY` | required | GoTrue anon key |
-| `GRPC_PORT` | 50051 | gRPC port |
+| `GOTRUE_URL` | required | Supabase project URL (e.g., https://xxx.supabase.co) |
+| `GOTRUE_ANON_KEY` | required | Supabase anon/public key |
+| `HTTP_PORT` | 8080 | HTTP server port |
 | `METRICS_PORT` | 9090 | Prometheus port |
 | `LOG_LEVEL` | info | debug/info/warn/error |
+| `LOG_REQUEST_BODIES` | false | Log request/response bodies (careful with sensitive data) |
 | `ENVIRONMENT` | development | development or production |
 | `TLS_ENABLED` | false | Turn on TLS |
 | `TLS_CERT_FILE` | - | Cert file path |
@@ -159,7 +193,7 @@ kubectl wait --for=condition=Ready pods -l app.kubernetes.io/instance=cert-manag
 # update the placeholders (domain, email, secrets)
 sed -i 's/auth.yourdomain.com/auth.yourrealdomain.com/g' infra/kubernetes/ingress.yaml infra/kubernetes/cert-manager.yaml
 sed -i 's/your-email@yourdomain.com/you@yourrealdomain.com/g' infra/kubernetes/cert-manager.yaml
-vi infra/kubernetes/secret.yaml  # add your GoTrue creds
+vi infra/kubernetes/secret.yaml  # add your Supabase creds
 
 # deploy
 make k8s-deploy
@@ -190,7 +224,7 @@ The Helm chart is published to GitHub Container Registry on each release:
 # Install latest version
 helm install auth-proxy oci://ghcr.io/kacy/auth-proxy \
   -f /path/to/your/values.yaml \
-  --set secrets.gotrueUrl=https://your-gotrue.example.com \
+  --set secrets.gotrueUrl=https://your-project.supabase.co \
   --set secrets.gotrueAnonKey=your-anon-key \
   -n auth-proxy --create-namespace
 
@@ -212,7 +246,7 @@ If you've cloned the repo or want to customize the chart:
 ```bash
 # Add your values and install
 helm install auth-proxy ./infra/helm/auth-proxy \
-  --set secrets.gotrueUrl=https://your-gotrue.example.com \
+  --set secrets.gotrueUrl=https://your-project.supabase.co \
   --set secrets.gotrueAnonKey=your-anon-key \
   --set ingress.host=auth.yourdomain.com \
   --set certManager.issuer.email=you@yourdomain.com \
@@ -233,7 +267,7 @@ vi values-production.yaml
 # Deploy from OCI registry with your values
 helm install auth-proxy oci://ghcr.io/kacy/auth-proxy \
   -f values-production.yaml \
-  --set secrets.gotrueUrl=https://your-gotrue.example.com \
+  --set secrets.gotrueUrl=https://your-project.supabase.co \
   --set secrets.gotrueAnonKey=your-anon-key \
   --set secrets.redisPassword=your-redis-password \
   -n auth-proxy --create-namespace
@@ -295,28 +329,28 @@ See `values.yaml` for all available options.
 
 ## Metrics
 
-Hit `:9090/metrics` for Prometheus. You get the usual stuff: request counts, latencies, auth attempts/successes/failures, attestation stats, and GoTrue upstream metrics.
+Hit `:9090/metrics` for Prometheus. You get: request counts, latencies, response sizes, auth attempts, attestation stats, and upstream metrics.
 
 ## Logging
 
 Structured JSON logs with emoji prefixes so you can grep for specific things:
 
-- 🚀 startup, 🛑 shutdown
-- 📥 request, 📤 response  
-- ✅ success, ❌ error, ⚠️ warning
-- 🔐 auth, 📧 email, 🍎 apple, 🔷 google
-- 💚 health, 🌐 network, 📊 metrics
+- startup, shutdown
+- request, response  
+- success, error, warning
+- auth, email, apple, google
+- health, network, metrics
 
 ## Make targets
 
-`make help` shows everything, but the main ones: `build`, `run`, `test`, `proto`, `lint`, `docker-build`, `docker-run`, `k8s-deploy`, `k8s-delete`.
+`make help` shows everything, but the main ones: `build`, `run`, `test`, `lint`, `docker-build`, `docker-run`, `k8s-deploy`, `k8s-delete`, `http-test`.
 
 ## Security notes
 
 - Turn on TLS in prod
 - Use attestation if you want to block scripts/bots
 - Don't commit secrets - use a secrets manager
-- Keep GoTrue internal (not public)
+- Keep Supabase URL private if possible
 - Review the NetworkPolicy for your setup
 
 ## Troubleshooting
@@ -326,7 +360,7 @@ kubectl get pods -n auth-proxy           # are pods running?
 kubectl get certificate -n auth-proxy    # is cert ready?
 kubectl get ingress -n auth-proxy        # does ingress have an IP?
 kubectl logs -l app=auth-proxy -n auth-proxy --tail=100
-grpcurl auth.yourdomain.com:443 auth.v1.HealthService/Check
+curl https://auth.yourdomain.com/health
 ```
 
 **Cert not ready?** Make sure DNS points to the ingress IP. Check cert-manager logs if it's stuck.
@@ -342,7 +376,7 @@ grpcurl auth.yourdomain.com:443 auth.v1.HealthService/Check
 echo | openssl s_client -connect auth.yourdomain.com:443 2>/dev/null | openssl x509 -noout -dates -subject
 ```
 
-For local dev, just skip TLS and use `grpcurl -plaintext localhost:50051 ...`
+For local dev, just use `curl http://localhost:8080/health`
 
 ## License
 

@@ -5,23 +5,15 @@ import (
 	"github.com/prometheus/client_golang/prometheus/promauto"
 )
 
+// Metrics holds application-level metrics.
+// HTTP request metrics are handled by the middleware package.
 type Metrics struct {
-	GRPCRequestsTotal    *prometheus.CounterVec
-	GRPCRequestDuration  *prometheus.HistogramVec
-	GRPCRequestsInFlight prometheus.Gauge
+	// Upstream metrics
+	UpstreamRequestsTotal   *prometheus.CounterVec
+	UpstreamRequestDuration *prometheus.HistogramVec
+	UpstreamErrors          *prometheus.CounterVec
 
-	AuthAttemptsTotal *prometheus.CounterVec
-	AuthSuccessTotal  *prometheus.CounterVec
-	AuthFailuresTotal *prometheus.CounterVec
-	AuthLatency       *prometheus.HistogramVec
-
-	GoTrueRequestsTotal   *prometheus.CounterVec
-	GoTrueRequestDuration *prometheus.HistogramVec
-	GoTrueErrors          *prometheus.CounterVec
-
-	SignupsTotal *prometheus.CounterVec
-	LoginsTotal  *prometheus.CounterVec
-
+	// Attestation metrics
 	AttestationAttemptsTotal *prometheus.CounterVec
 	AttestationSuccessTotal  *prometheus.CounterVec
 	AttestationFailuresTotal *prometheus.CounterVec
@@ -29,91 +21,27 @@ type Metrics struct {
 
 func New() *Metrics {
 	return &Metrics{
-		GRPCRequestsTotal: promauto.NewCounterVec(
+		UpstreamRequestsTotal: promauto.NewCounterVec(
 			prometheus.CounterOpts{
-				Name: "auth_proxy_grpc_requests_total",
-				Help: "Total number of gRPC requests",
-			},
-			[]string{"method", "status"},
-		),
-		GRPCRequestDuration: promauto.NewHistogramVec(
-			prometheus.HistogramOpts{
-				Name:    "auth_proxy_grpc_request_duration_seconds",
-				Help:    "gRPC request duration in seconds",
-				Buckets: []float64{.001, .005, .01, .025, .05, .1, .25, .5, 1, 2.5, 5, 10},
-			},
-			[]string{"method"},
-		),
-		GRPCRequestsInFlight: promauto.NewGauge(
-			prometheus.GaugeOpts{
-				Name: "auth_proxy_grpc_requests_in_flight",
-				Help: "Number of gRPC requests currently being processed",
-			},
-		),
-		AuthAttemptsTotal: promauto.NewCounterVec(
-			prometheus.CounterOpts{
-				Name: "auth_proxy_auth_attempts_total",
-				Help: "Total number of authentication attempts",
-			},
-			[]string{"provider", "action"},
-		),
-		AuthSuccessTotal: promauto.NewCounterVec(
-			prometheus.CounterOpts{
-				Name: "auth_proxy_auth_success_total",
-				Help: "Total number of successful authentications",
-			},
-			[]string{"provider", "action"},
-		),
-		AuthFailuresTotal: promauto.NewCounterVec(
-			prometheus.CounterOpts{
-				Name: "auth_proxy_auth_failures_total",
-				Help: "Total number of failed authentications",
-			},
-			[]string{"provider", "action", "reason"},
-		),
-		AuthLatency: promauto.NewHistogramVec(
-			prometheus.HistogramOpts{
-				Name:    "auth_proxy_auth_latency_seconds",
-				Help:    "Authentication operation latency in seconds",
-				Buckets: []float64{.01, .05, .1, .25, .5, 1, 2.5, 5, 10},
-			},
-			[]string{"provider", "action"},
-		),
-		GoTrueRequestsTotal: promauto.NewCounterVec(
-			prometheus.CounterOpts{
-				Name: "auth_proxy_gotrue_requests_total",
-				Help: "Total number of requests to GoTrue",
+				Name: "auth_proxy_upstream_requests_total",
+				Help: "Total number of requests to upstream (Supabase)",
 			},
 			[]string{"endpoint", "status"},
 		),
-		GoTrueRequestDuration: promauto.NewHistogramVec(
+		UpstreamRequestDuration: promauto.NewHistogramVec(
 			prometheus.HistogramOpts{
-				Name:    "auth_proxy_gotrue_request_duration_seconds",
-				Help:    "GoTrue request duration in seconds",
+				Name:    "auth_proxy_upstream_request_duration_seconds",
+				Help:    "Upstream request duration in seconds",
 				Buckets: []float64{.01, .05, .1, .25, .5, 1, 2.5, 5, 10},
 			},
 			[]string{"endpoint"},
 		),
-		GoTrueErrors: promauto.NewCounterVec(
+		UpstreamErrors: promauto.NewCounterVec(
 			prometheus.CounterOpts{
-				Name: "auth_proxy_gotrue_errors_total",
-				Help: "Total number of GoTrue errors",
+				Name: "auth_proxy_upstream_errors_total",
+				Help: "Total number of upstream errors",
 			},
 			[]string{"endpoint", "error_type"},
-		),
-		SignupsTotal: promauto.NewCounterVec(
-			prometheus.CounterOpts{
-				Name: "auth_proxy_signups_total",
-				Help: "Total number of user signups",
-			},
-			[]string{"provider"},
-		),
-		LoginsTotal: promauto.NewCounterVec(
-			prometheus.CounterOpts{
-				Name: "auth_proxy_logins_total",
-				Help: "Total number of user logins",
-			},
-			[]string{"provider"},
 		),
 		AttestationAttemptsTotal: promauto.NewCounterVec(
 			prometheus.CounterOpts{

@@ -1,13 +1,12 @@
 apiVersion: v2
 name: auth-proxy
-description: gRPC auth service that sits in front of GoTrue/Supabase
+description: HTTP reverse proxy for Supabase Auth with optional device attestation
 type: application
 version: "0.1.0"
 appVersion: "1.0.0"
 keywords:
   - auth
-  - grpc
-  - gotrue
+  - proxy
   - supabase
   - attestation
 maintainers:
