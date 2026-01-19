@@ -1,0 +1,16 @@
+{{- if eq .Values.ingress.className "gce" }}
+apiVersion: cloud.google.com/v1
+kind: BackendConfig
+metadata:
+  name: {{ include "auth-proxy.fullname" . }}
+  labels:
+    {{- include "auth-proxy.labels" . | nindent 4 }}
+spec:
+  healthCheck:
+    checkIntervalSec: 10
+    timeoutSec: 5
+    healthyThreshold: 1
+    unhealthyThreshold: 3
+    type: HTTP
+    requestPath: /health
+{{- end }}

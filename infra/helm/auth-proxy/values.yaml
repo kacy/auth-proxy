@@ -137,11 +137,12 @@ readinessProbe:
   timeoutSeconds: 3
   failureThreshold: 3
 
-# Pod affinity - spread across nodes
+# Pod affinity - soft preference to spread across nodes
+# Uses "preferred" so pods CAN schedule on same node if necessary
 affinity:
   podAntiAffinity:
     preferredDuringSchedulingIgnoredDuringExecution:
-      - weight: 100
+      - weight: 50
         podAffinityTerm:
           labelSelector:
             matchExpressions:
@@ -179,7 +180,7 @@ config:
   logLevel: "info"
   logRequestBodies: "false"
 
-  # Security - require clients to send anon key in X-API-Key header
+  # Security - require clients to send anon key in apikey header
   requireApiKey: "true"
 
   # Attestation settings

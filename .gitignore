@@ -39,3 +39,5 @@ dist/
 # Temporary files
 tmp/
 temp/
+
+.helm*

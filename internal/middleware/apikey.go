@@ -12,7 +12,7 @@ import (
 
 const (
 	// APIKeyHeader is the header clients must send with the Supabase anon key.
-	APIKeyHeader = "X-API-Key"
+	APIKeyHeader = "apikey"
 )
 
 // APIKeyMiddleware validates that clients send the correct API key.
