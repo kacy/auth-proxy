@@ -96,7 +96,8 @@ config:
 
   # Enable attestation in production
   attestation:
-    enabled: true
+    iosEnabled: true
+    androidEnabled: true
     requireStrongIntegrity: true  # Enforce strong integrity verdict
     challengeTimeout: "5m"
 

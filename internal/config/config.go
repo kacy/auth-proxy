@@ -32,7 +32,8 @@ type Config struct {
 	RequireAPIKey bool
 
 	// Attestation - leave disabled if you don't need it
-	AttestationEnabled            bool
+	AttestationIOSEnabled         bool
+	AttestationAndroidEnabled     bool
 	AttestationIOSBundleID        string
 	AttestationIOSTeamID          string
 	AttestationAndroidPackage     string
@@ -75,7 +76,8 @@ func Load() (*Config, error) {
 
 		RequireAPIKey: getEnvBool("REQUIRE_API_KEY", true),
 
-		AttestationEnabled:            getEnvBool("ATTESTATION_ENABLED", false),
+		AttestationIOSEnabled:         getEnvBool("ATTESTATION_IOS_ENABLED", false),
+		AttestationAndroidEnabled:     getEnvBool("ATTESTATION_ANDROID_ENABLED", false),
 		AttestationIOSBundleID:        os.Getenv("ATTESTATION_IOS_BUNDLE_ID"),
 		AttestationIOSTeamID:          os.Getenv("ATTESTATION_IOS_TEAM_ID"),
 		AttestationAndroidPackage:     os.Getenv("ATTESTATION_ANDROID_PACKAGE"),
@@ -110,20 +112,21 @@ func (c *Config) Validate() error {
 		return fmt.Errorf("GOTRUE_ANON_KEY is required")
 	}
 
-	if c.AttestationEnabled {
-		hasIOS := c.AttestationIOSBundleID != ""
-		hasAndroid := c.AttestationAndroidPackage != ""
-
-		if !hasIOS && !hasAndroid {
-			return fmt.Errorf("ATTESTATION_ENABLED is true but no platform configured (set ATTESTATION_IOS_BUNDLE_ID or ATTESTATION_ANDROID_PACKAGE)")
+	if c.AttestationIOSEnabled {
+		if c.AttestationIOSBundleID == "" {
+			return fmt.Errorf("ATTESTATION_IOS_ENABLED is true but ATTESTATION_IOS_BUNDLE_ID is not set")
 		}
-
-		if hasIOS && c.AttestationIOSTeamID == "" {
-			return fmt.Errorf("ATTESTATION_IOS_BUNDLE_ID is set but ATTESTATION_IOS_TEAM_ID is missing")
+		if c.AttestationIOSTeamID == "" {
+			return fmt.Errorf("ATTESTATION_IOS_ENABLED is true but ATTESTATION_IOS_TEAM_ID is not set")
 		}
+	}
 
-		if hasAndroid && c.AttestationGCPProjectID == "" {
-			return fmt.Errorf("ATTESTATION_ANDROID_PACKAGE is set but ATTESTATION_GCP_PROJECT_ID is missing")
+	if c.AttestationAndroidEnabled {
+		if c.AttestationAndroidPackage == "" {
+			return fmt.Errorf("ATTESTATION_ANDROID_ENABLED is true but ATTESTATION_ANDROID_PACKAGE is not set")
+		}
+		if c.AttestationGCPProjectID == "" {
+			return fmt.Errorf("ATTESTATION_ANDROID_ENABLED is true but ATTESTATION_GCP_PROJECT_ID is not set")
 		}
 	}
 

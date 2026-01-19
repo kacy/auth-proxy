@@ -9,20 +9,21 @@ import (
 
 func TestVerifierIsEnabled(t *testing.T) {
 	tests := []struct {
-		name    string
-		enabled bool
-		want    bool
+		name           string
+		iosEnabled     bool
+		androidEnabled bool
+		want           bool
 	}{
-		{"enabled", true, true},
-		{"disabled", false, false},
+		{"both enabled", true, true, true},
+		{"only iOS enabled", true, false, true},
+		{"only Android enabled", false, true, true},
+		{"both disabled", false, false, false},
 	}
 
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
-			// For enabled=true with no platform config, NewVerifier would fail,
-			// so we test with disabled or mock the internal state
 			v := &Verifier{
-				config: Config{Enabled: tt.enabled},
+				config: Config{IOSEnabled: tt.iosEnabled, AndroidEnabled: tt.androidEnabled},
 			}
 			if got := v.IsEnabled(); got != tt.want {
 				t.Errorf("IsEnabled() = %v, want %v", got, tt.want)
@@ -33,7 +34,7 @@ func TestVerifierIsEnabled(t *testing.T) {
 
 func TestVerifyDisabled(t *testing.T) {
 	logger, _ := createTestLogger()
-	v, err := NewVerifier(Config{Enabled: false}, nil, logger)
+	v, err := NewVerifier(Config{IOSEnabled: false, AndroidEnabled: false}, nil, logger)
 	if err != nil {
 		t.Fatalf("NewVerifier() error = %v", err)
 	}
@@ -47,11 +48,11 @@ func TestVerifyDisabled(t *testing.T) {
 
 func TestVerifyRequiredButMissing(t *testing.T) {
 	logger, _ := createTestLogger()
-	// Create a verifier with enabled=true but mock the internal state
+	// Create a verifier with iOS enabled but mock the internal state
 	// to avoid needing actual platform config
 	v := &Verifier{
 		config: Config{
-			Enabled:     true,
+			IOSEnabled:  true,
 			IOSBundleID: "com.test.app",
 			IOSTeamID:   "TEAM123",
 		},
@@ -68,7 +69,7 @@ func TestVerifyUnsupportedPlatform(t *testing.T) {
 	logger, _ := createTestLogger()
 	v := &Verifier{
 		config: Config{
-			Enabled:     true,
+			IOSEnabled:  true,
 			IOSBundleID: "com.test.app",
 			IOSTeamID:   "TEAM123",
 		},
@@ -92,7 +93,7 @@ func createTestLogger() (*logging.Logger, error) {
 
 func TestGenerateChallenge(t *testing.T) {
 	logger, _ := createTestLogger()
-	v, err := NewVerifier(Config{Enabled: false}, nil, logger)
+	v, err := NewVerifier(Config{IOSEnabled: false, AndroidEnabled: false}, nil, logger)
 	if err != nil {
 		t.Fatalf("NewVerifier() error = %v", err)
 	}
@@ -151,7 +152,7 @@ func TestPlatformConversion(t *testing.T) {
 
 func TestNewVerifierDisabled(t *testing.T) {
 	logger, _ := createTestLogger()
-	v, err := NewVerifier(Config{Enabled: false}, nil, logger)
+	v, err := NewVerifier(Config{IOSEnabled: false, AndroidEnabled: false}, nil, logger)
 	if err != nil {
 		t.Fatalf("NewVerifier() with disabled config should not error, got %v", err)
 	}
@@ -164,7 +165,7 @@ func TestNewVerifierDisabled(t *testing.T) {
 
 func TestValidateChallengeDisabled(t *testing.T) {
 	logger, _ := createTestLogger()
-	v, err := NewVerifier(Config{Enabled: false}, nil, logger)
+	v, err := NewVerifier(Config{IOSEnabled: false, AndroidEnabled: false}, nil, logger)
 	if err != nil {
 		t.Fatalf("NewVerifier() error = %v", err)
 	}

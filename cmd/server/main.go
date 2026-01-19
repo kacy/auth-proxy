@@ -51,7 +51,8 @@ func main() {
 
 	// Initialize attestation verifier
 	attestationVerifier, err := attestation.NewVerifier(attestation.Config{
-		Enabled:                cfg.AttestationEnabled,
+		IOSEnabled:             cfg.AttestationIOSEnabled,
+		AndroidEnabled:         cfg.AttestationAndroidEnabled,
 		IOSBundleID:            cfg.AttestationIOSBundleID,
 		IOSTeamID:              cfg.AttestationIOSTeamID,
 		AndroidPackageName:     cfg.AttestationAndroidPackage,
@@ -66,8 +67,13 @@ func main() {
 	}
 	defer attestationVerifier.Close()
 
-	if cfg.AttestationEnabled {
-		logger.Logger.Info(logging.EmojiAuth + " app attestation enabled")
+	if cfg.AttestationIOSEnabled || cfg.AttestationAndroidEnabled {
+		if cfg.AttestationIOSEnabled {
+			logger.Logger.Info(logging.EmojiAuth + " iOS app attestation enabled")
+		}
+		if cfg.AttestationAndroidEnabled {
+			logger.Logger.Info(logging.EmojiAuth + " Android app attestation enabled")
+		}
 	} else {
 		logger.Logger.Info(logging.EmojiAuth + " app attestation disabled")
 	}

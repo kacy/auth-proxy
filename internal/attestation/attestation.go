@@ -37,7 +37,8 @@ const (
 
 // Config holds configuration for the attestation verifier.
 type Config struct {
-	Enabled                bool
+	IOSEnabled             bool
+	AndroidEnabled         bool
 	IOSBundleID            string
 	IOSTeamID              string
 	AndroidPackageName     string
@@ -92,7 +93,7 @@ func NewVerifier(config Config, redisConfig *RedisConfig, logger *logging.Logger
 		logger: logger,
 	}
 
-	if !config.Enabled {
+	if !config.IOSEnabled && !config.AndroidEnabled {
 		return v, nil
 	}
 
@@ -188,9 +189,19 @@ func (v *Verifier) setupMemoryStores(timeout time.Duration) {
 	v.keyStore = ios.NewMemoryKeyStore()
 }
 
-// IsEnabled returns whether attestation verification is enabled.
+// IsEnabled returns whether attestation verification is enabled for any platform.
 func (v *Verifier) IsEnabled() bool {
-	return v.config.Enabled
+	return v.config.IOSEnabled || v.config.AndroidEnabled
+}
+
+// IsIOSEnabled returns whether iOS attestation is enabled.
+func (v *Verifier) IsIOSEnabled() bool {
+	return v.config.IOSEnabled
+}
+
+// IsAndroidEnabled returns whether Android attestation is enabled.
+func (v *Verifier) IsAndroidEnabled() bool {
+	return v.config.AndroidEnabled
 }
 
 // Close releases resources used by the verifier.
@@ -206,7 +217,7 @@ func (v *Verifier) Close() error {
 
 // Verify verifies an attestation (initial device registration).
 func (v *Verifier) Verify(ctx context.Context, data *AttestationData) error {
-	if !v.config.Enabled {
+	if !v.IsEnabled() {
 		return nil
 	}
 
@@ -228,7 +239,7 @@ func (v *Verifier) Verify(ctx context.Context, data *AttestationData) error {
 // VerifyAssertion verifies an iOS assertion (subsequent requests after attestation).
 // This validates that the request is signed by a previously attested device key.
 func (v *Verifier) VerifyAssertion(ctx context.Context, data *AssertionData) error {
-	if !v.config.Enabled {
+	if !v.IsIOSEnabled() {
 		return nil
 	}
 

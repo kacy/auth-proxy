@@ -185,7 +185,8 @@ config:
 
   # Attestation settings
   attestation:
-    enabled: false
+    iosEnabled: false
+    androidEnabled: false
     requireStrongIntegrity: false
     challengeTimeout: "5m"
 

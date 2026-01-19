@@ -17,7 +17,8 @@ data:
   LOG_REQUEST_BODIES: "false"
   # Security - require clients to send anon key in apikey header
   REQUIRE_API_KEY: "true"
-  ATTESTATION_ENABLED: "false"
+  ATTESTATION_IOS_ENABLED: "false"
+  ATTESTATION_ANDROID_ENABLED: "false"
   ATTESTATION_REQUIRE_STRONG_INTEGRITY: "false"
   ATTESTATION_CHALLENGE_TIMEOUT: "5m"
   # Redis for distributed attestation state (required for multi-replica with attestation)

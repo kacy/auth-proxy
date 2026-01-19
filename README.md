@@ -94,14 +94,16 @@ REQUIRE_API_KEY=false
 
 If you want to make sure only your actual apps can hit this API (not some random script), turn on attestation. It uses Apple's App Attest on iOS and Google Play Integrity on Android.
 
-Set `ATTESTATION_ENABLED=true` and configure the platform(s) you care about:
+Enable attestation separately for each platform you care about:
 
 ```bash
-# iOS
+# iOS - enable and configure
+ATTESTATION_IOS_ENABLED=true
 ATTESTATION_IOS_BUNDLE_ID=com.yourcompany.yourapp
 ATTESTATION_IOS_TEAM_ID=YOURTEAMID
 
-# Android
+# Android - enable and configure
+ATTESTATION_ANDROID_ENABLED=true
 ATTESTATION_ANDROID_PACKAGE=com.yourcompany.yourapp
 ATTESTATION_GCP_PROJECT_ID=your-gcp-project-id
 ATTESTATION_GCP_CREDENTIALS_FILE=/path/to/service-account.json
@@ -168,7 +170,7 @@ REDIS_KEY_PREFIX=authproxy:
 
 Without Redis, each instance has its own in-memory stores, which will cause attestation failures when requests hit different instances.
 
-Don't need it? Just leave `ATTESTATION_ENABLED` unset or false.
+Don't need it? Just leave `ATTESTATION_IOS_ENABLED` and `ATTESTATION_ANDROID_ENABLED` unset or false.
 
 ## Config
 
@@ -185,7 +187,8 @@ Don't need it? Just leave `ATTESTATION_ENABLED` unset or false.
 | `TLS_ENABLED` | false | Turn on TLS |
 | `TLS_CERT_FILE` | - | Cert file path |
 | `TLS_KEY_FILE` | - | Key file path |
-| `ATTESTATION_ENABLED` | false | Require app attestation |
+| `ATTESTATION_IOS_ENABLED` | false | Enable iOS App Attest |
+| `ATTESTATION_ANDROID_ENABLED` | false | Enable Android Play Integrity |
 | `ATTESTATION_IOS_BUNDLE_ID` | - | iOS bundle ID (com.company.app) |
 | `ATTESTATION_IOS_TEAM_ID` | - | Apple Developer Team ID |
 | `ATTESTATION_ANDROID_PACKAGE` | - | Android package name |
@@ -339,7 +342,8 @@ helm uninstall auth-proxy -n auth-proxy
 | `networkPolicy.enabled` | true | Enable network policies |
 | `serviceMonitor.enabled` | true | Enable Prometheus ServiceMonitor |
 | `certManager.enabled` | true | Enable cert-manager integration |
-| `config.attestation.enabled` | false | Enable device attestation |
+| `config.attestation.iosEnabled` | false | Enable iOS App Attest |
+| `config.attestation.androidEnabled` | false | Enable Android Play Integrity |
 | `config.redis.enabled` | false | Enable Redis for distributed state |
 | `existingSecret` | "" | Use existing secret instead of creating one |
 
