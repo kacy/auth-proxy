@@ -2,6 +2,7 @@
 package middleware
 
 import (
+	"encoding/base64"
 	"encoding/json"
 	"net/http"
 	"strings"
@@ -96,11 +97,20 @@ func (m *AttestationMiddleware) verifyAttestation(r *http.Request) error {
 func (m *AttestationMiddleware) verifyAssertion(r *http.Request) error {
 	assertion := r.Header.Get(AssertionHeader)
 	keyID := r.Header.Get(KeyIDHeader)
-	clientData := r.Header.Get(ClientDataHeader)
+	clientDataB64 := r.Header.Get(ClientDataHeader)
+
+	// Decode the base64-encoded client data
+	clientData, err := base64.StdEncoding.DecodeString(clientDataB64)
+	if err != nil {
+		m.logger.AuthError("failed to decode client data",
+			zap.Error(err),
+		)
+		return attestation.ErrInvalidAssertion
+	}
 
 	data := &attestation.AssertionData{
 		Assertion:  assertion,
-		ClientData: []byte(clientData),
+		ClientData: clientData,
 		KeyID:      keyID,
 	}
 
