@@ -156,6 +156,8 @@ curl -X POST http://localhost:8080/auth/v1/token?grant_type=password \
 
 After the initial attestation, iOS apps can use **assertions** for subsequent requests. Assertions are signed by the attested device key and include a counter to prevent replay attacks. The server stores the public key after initial attestation and uses it to verify all future assertions.
 
+For iOS client integration, see [AppAttestKit](https://github.com/kacy/AppAttestKit) - a Swift library that handles App Attest attestation and assertion generation.
+
 ### Multi-Instance Deployments (Redis)
 
 If you're running multiple server instances with attestation enabled, you need Redis to share attestation state (challenges and iOS key storage):
