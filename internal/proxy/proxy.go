@@ -3,6 +3,7 @@ package proxy
 
 import (
 	"bytes"
+	"encoding/json"
 	"io"
 	"net/http"
 	"net/http/httputil"
@@ -96,18 +97,94 @@ func (p *Proxy) director(req *http.Request) {
 	)
 }
 
+// authResponse represents a Supabase auth response with user info.
+type authResponse struct {
+	User *struct {
+		ID          string `json:"id"`
+		Email       string `json:"email"`
+		AppMetadata struct {
+			Provider string `json:"provider"`
+		} `json:"app_metadata"`
+	} `json:"user"`
+}
+
+// authPaths are the Supabase Auth API paths that return user info on success.
+var authPaths = []string{
+	"/auth/v1/token",
+	"/auth/v1/signup",
+	"/auth/v1/verify",
+	"/auth/v1/recover",
+	"/auth/v1/user",
+}
+
+// isAuthPath checks if the request path is an auth endpoint that returns user info.
+func isAuthPath(path string) bool {
+	for _, authPath := range authPaths {
+		if strings.HasPrefix(path, authPath) {
+			return true
+		}
+	}
+	return false
+}
+
 // modifyResponse processes the response from the target.
 func (p *Proxy) modifyResponse(resp *http.Response) error {
 	// Remove hop-by-hop headers from response
 	removeHopByHopHeaders(resp.Header)
 
+	path := resp.Request.URL.Path
+
 	// Log response status
 	p.logger.Response("received response from Supabase",
 		zap.Int("status", resp.StatusCode),
-		zap.String("path", resp.Request.URL.Path),
+		zap.String("path", path),
 	)
 
+	// For successful auth responses, extract and log user info
+	if resp.StatusCode >= 200 && resp.StatusCode < 300 && isAuthPath(path) {
+		p.logAuthResponse(resp)
+	}
+
 	return nil
+}
+
+// logAuthResponse extracts user info from auth responses and logs it.
+func (p *Proxy) logAuthResponse(resp *http.Response) {
+	if resp.Body == nil {
+		return
+	}
+
+	// Read the body
+	body, err := io.ReadAll(resp.Body)
+	if err != nil {
+		p.logger.Logger.Debug("failed to read auth response body", zap.Error(err))
+		return
+	}
+
+	// Restore the body for the client
+	resp.Body = io.NopCloser(bytes.NewBuffer(body))
+
+	// Parse the response
+	var authResp authResponse
+	if err := json.Unmarshal(body, &authResp); err != nil {
+		// Not all responses are JSON or have user info, that's okay
+		return
+	}
+
+	// Log user info if present
+	if authResp.User != nil && authResp.User.ID != "" {
+		provider := authResp.User.AppMetadata.Provider
+		if provider == "" {
+			provider = "email"
+		}
+
+		p.logger.OAuthSuccess(
+			provider,
+			authResp.User.Email,
+			authResp.User.ID,
+			zap.String("path", resp.Request.URL.Path),
+		)
+	}
 }
 
 // errorHandler handles proxy errors.

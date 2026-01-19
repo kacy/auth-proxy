@@ -10,6 +10,8 @@ import (
 	"go.uber.org/zap"
 )
 
+// Note: Body sanitization is now handled by logging.SanitizeBody
+
 // LoggingMiddleware logs HTTP requests and responses.
 type LoggingMiddleware struct {
 	logger      *logging.Logger
@@ -63,7 +65,7 @@ func (m *LoggingMiddleware) Middleware(next http.Handler) http.Handler {
 
 		// Log request body (sanitized)
 		if m.logBodies && len(requestBody) > 0 {
-			sanitized := sanitizeBody(requestBody)
+			sanitized := logging.SanitizeBody(requestBody)
 			fields = append(fields, zap.String("request_body", sanitized))
 		}
 
@@ -94,7 +96,7 @@ func (m *LoggingMiddleware) Middleware(next http.Handler) http.Handler {
 		}
 
 		if m.logBodies && recorder.body.Len() > 0 {
-			sanitized := sanitizeBody(recorder.body.Bytes())
+			sanitized := logging.SanitizeBody(recorder.body.Bytes())
 			responseFields = append(responseFields, zap.String("response_body", sanitized))
 		}
 
@@ -127,33 +129,4 @@ func (r *responseRecorder) Write(b []byte) (int, error) {
 	n, err := r.ResponseWriter.Write(b)
 	r.written += int64(n)
 	return n, err
-}
-
-// sanitizeBody removes sensitive fields from JSON bodies for logging.
-func sanitizeBody(body []byte) string {
-	// For now, just truncate if too long
-	const maxLen = 1024
-	s := string(body)
-	if len(s) > maxLen {
-		return s[:maxLen] + "...(truncated)"
-	}
-
-	// Simple pattern-based sanitization for common sensitive fields
-	// In production, you might want to use proper JSON parsing
-	sensitivePatterns := []string{
-		`"password"`,
-		`"access_token"`,
-		`"refresh_token"`,
-		`"token"`,
-		`"apikey"`,
-		`"secret"`,
-	}
-
-	for _, pattern := range sensitivePatterns {
-		if bytes.Contains(body, []byte(pattern)) {
-			return "[body contains sensitive data - not logged]"
-		}
-	}
-
-	return s
 }

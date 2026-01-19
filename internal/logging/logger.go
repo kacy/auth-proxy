@@ -1,7 +1,9 @@
 package logging
 
 import (
+	"bytes"
 	"os"
+	"strings"
 
 	"go.uber.org/zap"
 	"go.uber.org/zap/zapcore"
@@ -115,6 +117,26 @@ func (l *Logger) GoogleAuth(msg string, fields ...zap.Field) {
 	l.Logger.Info(l.WithEmoji(EmojiGoogle, msg), fields...)
 }
 
+// OAuthSuccess logs a successful OAuth authentication with masked user info.
+func (l *Logger) OAuthSuccess(provider string, email string, userID string, fields ...zap.Field) {
+	emoji := EmojiOAuth
+	switch strings.ToLower(provider) {
+	case "apple":
+		emoji = EmojiApple
+	case "google":
+		emoji = EmojiGoogle
+	}
+
+	baseFields := []zap.Field{
+		zap.String("provider", provider),
+		zap.String("email", MaskEmail(email)),
+		zap.String("user_id", MaskUserID(userID)),
+	}
+	allFields := append(baseFields, fields...)
+
+	l.Logger.Info(l.WithEmoji(emoji+" "+EmojiSuccess, "user authenticated"), allFields...)
+}
+
 func (l *Logger) Health(msg string, fields ...zap.Field) {
 	l.Logger.Debug(l.WithEmoji(EmojiHealth, msg), fields...)
 }
@@ -137,4 +159,74 @@ func Must(level string, isProduction bool) *Logger {
 		os.Exit(1)
 	}
 	return logger
+}
+
+// Masking functions for sensitive data
+
+// MaskEmail masks an email address, showing only the first 2 characters and domain.
+// Example: "john.doe@example.com" -> "jo***@example.com"
+func MaskEmail(email string) string {
+	if email == "" {
+		return ""
+	}
+
+	parts := strings.Split(email, "@")
+	if len(parts) != 2 {
+		return "***"
+	}
+
+	local := parts[0]
+	domain := parts[1]
+
+	if len(local) <= 2 {
+		return local + "***@" + domain
+	}
+
+	return local[:2] + "***@" + domain
+}
+
+// MaskUserID masks a user ID, showing only the first 8 characters.
+// Example: "550e8400-e29b-41d4-a716-446655440000" -> "550e8400-****"
+func MaskUserID(userID string) string {
+	if userID == "" {
+		return ""
+	}
+
+	if len(userID) <= 8 {
+		return userID + "-****"
+	}
+
+	return userID[:8] + "-****"
+}
+
+// SensitiveFields are field names that should not be logged.
+var SensitiveFields = []string{
+	"password",
+	"access_token",
+	"refresh_token",
+	"token",
+	"apikey",
+	"secret",
+	"id_token",
+	"provider_token",
+	"provider_refresh_token",
+}
+
+// SanitizeBody removes sensitive fields from JSON bodies for logging.
+func SanitizeBody(body []byte) string {
+	const maxLen = 1024
+	s := string(body)
+	if len(s) > maxLen {
+		return s[:maxLen] + "...(truncated)"
+	}
+
+	// Check for sensitive field patterns
+	for _, field := range SensitiveFields {
+		pattern := `"` + field + `"`
+		if bytes.Contains(body, []byte(pattern)) {
+			return "[body contains sensitive data - not logged]"
+		}
+	}
+
+	return s
 }
