@@ -117,12 +117,12 @@ func NewVerifier(config Config, redisConfig *RedisConfig, logger *logging.Logger
 		KeyStore:         v.keyStore,
 	}
 
-	if config.IOSBundleID != "" {
+	if config.IOSEnabled && config.IOSBundleID != "" {
 		verifierCfg.IOSBundleIDs = []string{config.IOSBundleID}
 		verifierCfg.IOSTeamID = config.IOSTeamID
 	}
 
-	if config.AndroidPackageName != "" {
+	if config.AndroidEnabled && config.AndroidPackageName != "" {
 		verifierCfg.AndroidPackageNames = []string{config.AndroidPackageName}
 		verifierCfg.GCPProjectID = config.GCPProjectID
 		verifierCfg.GCPCredentialsFile = config.GCPCredentialsFile
@@ -228,8 +228,14 @@ func (v *Verifier) Verify(ctx context.Context, data *AttestationData) error {
 
 	switch data.Platform {
 	case PlatformIOS:
+		if !v.config.IOSEnabled {
+			return ErrUnsupportedPlatform
+		}
 		return v.verifyIOS(ctx, data)
 	case PlatformAndroid:
+		if !v.config.AndroidEnabled {
+			return ErrUnsupportedPlatform
+		}
 		return v.verifyAndroid(ctx, data)
 	default:
 		return ErrUnsupportedPlatform
