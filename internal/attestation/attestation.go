@@ -5,6 +5,7 @@ package attestation
 import (
 	"context"
 	"errors"
+	"fmt"
 	"time"
 
 	deviceattest "github.com/kacy/device-attestation"
@@ -301,6 +302,7 @@ func (v *Verifier) verifyIOS(ctx context.Context, data *AttestationData) error {
 	v.logger.AppleAuth("verifying iOS attestation",
 		zap.String("key_id", maskString(data.KeyID)),
 		zap.Bool("has_key_store", v.keyStore != nil),
+		zap.Bool("has_verifier", v.verifier != nil),
 	)
 
 	bundleID := data.BundleID
@@ -308,12 +310,18 @@ func (v *Verifier) verifyIOS(ctx context.Context, data *AttestationData) error {
 		bundleID = v.config.IOSBundleID
 	}
 
-	v.logger.Debug("attestation verification details",
+	v.logger.Info("attestation verification details",
 		zap.String("bundle_id", bundleID),
 		zap.String("team_id", v.config.IOSTeamID),
 		zap.Int("token_length", len(data.Token)),
 		zap.Int("challenge_length", len(data.Challenge)),
+		zap.String("key_id", data.KeyID),
 	)
+
+	if v.verifier == nil {
+		v.logger.AuthError("iOS verifier is nil - attestation not properly configured")
+		return ErrUnsupportedPlatform
+	}
 
 	result, err := v.verifier.Verify(ctx, &deviceattest.Request{
 		Platform:    deviceattest.PlatformIOS,
@@ -326,7 +334,9 @@ func (v *Verifier) verifyIOS(ctx context.Context, data *AttestationData) error {
 	if err != nil {
 		v.logger.AuthError("iOS attestation verification failed",
 			zap.Error(err),
+			zap.String("error_type", fmt.Sprintf("%T", err)),
 			zap.String("key_id", maskString(data.KeyID)),
+			zap.String("bundle_id", bundleID),
 		)
 		return convertError(err)
 	}
