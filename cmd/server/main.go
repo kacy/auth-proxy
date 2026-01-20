@@ -51,15 +51,16 @@ func main() {
 
 	// Initialize attestation verifier
 	attestationVerifier, err := attestation.NewVerifier(attestation.Config{
-		IOSEnabled:             cfg.AttestationIOSEnabled,
-		AndroidEnabled:         cfg.AttestationAndroidEnabled,
-		IOSBundleID:            cfg.AttestationIOSBundleID,
-		IOSTeamID:              cfg.AttestationIOSTeamID,
-		AndroidPackageName:     cfg.AttestationAndroidPackage,
-		GCPProjectID:           cfg.AttestationGCPProjectID,
-		GCPCredentialsFile:     cfg.AttestationGCPCredentialsFile,
-		RequireStrongIntegrity: cfg.AttestationRequireStrong,
-		ChallengeTimeout:       cfg.AttestationChallengeTimeout,
+		IOSEnabled:                  cfg.AttestationIOSEnabled,
+		AndroidEnabled:              cfg.AttestationAndroidEnabled,
+		IOSBundleID:                 cfg.AttestationIOSBundleID,
+		IOSTeamID:                   cfg.AttestationIOSTeamID,
+		AndroidPackageName:          cfg.AttestationAndroidPackage,
+		GCPProjectID:                cfg.AttestationGCPProjectID,
+		GCPCredentialsFile:          cfg.AttestationGCPCredentialsFile,
+		RequireStrongIntegrity:      cfg.AttestationRequireStrong,
+		ChallengeTimeout:            cfg.AttestationChallengeTimeout,
+		SkipCertificateVerification: cfg.AttestationSkipCertVerification,
 	}, redisConfig, logger)
 	if err != nil {
 		logger.Logger.Error(logging.EmojiError + " failed to initialize attestation verifier")

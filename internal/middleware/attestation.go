@@ -39,41 +39,102 @@ func NewAttestationMiddleware(verifier *attestation.Verifier, logger *logging.Lo
 // Middleware returns the HTTP middleware handler.
 func (m *AttestationMiddleware) Middleware(next http.Handler) http.Handler {
 	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		// Log incoming request for debugging
+		m.logger.Debug("attestation middleware received request",
+			zap.String("method", r.Method),
+			zap.String("path", r.URL.Path),
+			zap.String("remote_addr", r.RemoteAddr),
+			zap.Bool("attestation_enabled", m.verifier.IsEnabled()),
+			zap.Bool("ios_enabled", m.verifier.IsIOSEnabled()),
+			zap.Bool("android_enabled", m.verifier.IsAndroidEnabled()),
+		)
+
 		// Skip attestation for health checks
 		if strings.HasPrefix(r.URL.Path, "/health") {
+			m.logger.Debug("skipping attestation for health check",
+				zap.String("path", r.URL.Path))
 			next.ServeHTTP(w, r)
 			return
 		}
 
 		// Skip if attestation is disabled
 		if !m.verifier.IsEnabled() {
+			m.logger.Debug("attestation disabled, skipping verification")
 			next.ServeHTTP(w, r)
 			return
 		}
 
+		// Log header presence
+		assertionHeader := r.Header.Get(AssertionHeader)
+		attestationHeader := r.Header.Get(AttestationHeader)
+		keyIDHeader := r.Header.Get(KeyIDHeader)
+		platformHeader := r.Header.Get(PlatformHeader)
+		clientDataHeader := r.Header.Get(ClientDataHeader)
+		challengeHeader := r.Header.Get(ChallengeHeader)
+
+		m.logger.Debug("checking attestation headers",
+			zap.Bool("assertion_present", assertionHeader != ""),
+			zap.Bool("attestation_present", attestationHeader != ""),
+			zap.Bool("key_id_present", keyIDHeader != ""),
+			zap.Bool("platform_present", platformHeader != ""),
+			zap.Bool("client_data_present", clientDataHeader != ""),
+			zap.Bool("challenge_present", challengeHeader != ""),
+		)
+
 		// Check if this is an initial attestation or an assertion
 		if r.Header.Get(AssertionHeader) != "" {
 			// iOS assertion flow (subsequent requests)
+			m.logger.AppleAuth("verifying iOS assertion request",
+				zap.String("path", r.URL.Path),
+				zap.String("key_id", maskString(keyIDHeader)),
+			)
 			if err := m.verifyAssertion(r); err != nil {
+				m.logger.AuthError("iOS assertion verification failed",
+					zap.Error(err),
+					zap.String("path", r.URL.Path),
+					zap.String("key_id", maskString(keyIDHeader)),
+				)
 				m.handleError(w, err)
 				return
 			}
+			m.logger.AuthSuccess("iOS assertion verification succeeded",
+				zap.String("path", r.URL.Path),
+				zap.String("key_id", maskString(keyIDHeader)),
+			)
 		} else if r.Header.Get(AttestationHeader) != "" {
 			// Initial attestation flow
+			m.logger.AppleAuth("verifying initial iOS attestation request",
+				zap.String("path", r.URL.Path),
+				zap.String("key_id", maskString(keyIDHeader)),
+				zap.String("platform", platformHeader),
+			)
 			if err := m.verifyAttestation(r); err != nil {
+				m.logger.AuthError("initial attestation verification failed",
+					zap.Error(err),
+					zap.String("path", r.URL.Path),
+					zap.String("key_id", maskString(keyIDHeader)),
+				)
 				m.handleError(w, err)
 				return
 			}
+			m.logger.AuthSuccess("initial attestation verification succeeded",
+				zap.String("path", r.URL.Path),
+				zap.String("key_id", maskString(keyIDHeader)),
+			)
 		} else {
 			// No attestation provided
-			m.logger.AuthWarning("request without attestation",
+			m.logger.AuthWarning("request without attestation headers - rejecting",
 				zap.String("path", r.URL.Path),
 				zap.String("method", r.Method),
+				zap.String("remote_addr", r.RemoteAddr),
 			)
 			m.handleError(w, attestation.ErrAttestationRequired)
 			return
 		}
 
+		m.logger.Debug("attestation verification completed successfully",
+			zap.String("path", r.URL.Path),
+		)
 		next.ServeHTTP(w, r)
 	})
 }
@@ -83,6 +144,15 @@ func (m *AttestationMiddleware) verifyAttestation(r *http.Request) error {
 	token := r.Header.Get(AttestationHeader)
 	keyID := r.Header.Get(KeyIDHeader)
 	challenge := r.Header.Get(ChallengeHeader)
+
+	m.logger.Debug("verifying initial attestation",
+		zap.String("platform", r.Header.Get(PlatformHeader)),
+		zap.String("key_id", maskString(keyID)),
+		zap.Bool("has_token", token != ""),
+		zap.Bool("has_challenge", challenge != ""),
+		zap.Int("token_length", len(token)),
+		zap.Int("challenge_length", len(challenge)),
+	)
 
 	data := &attestation.AttestationData{
 		Platform:  platform,
@@ -99,14 +169,28 @@ func (m *AttestationMiddleware) verifyAssertion(r *http.Request) error {
 	keyID := r.Header.Get(KeyIDHeader)
 	clientDataB64 := r.Header.Get(ClientDataHeader)
 
+	m.logger.Debug("verifying assertion",
+		zap.String("key_id", maskString(keyID)),
+		zap.Bool("has_assertion", assertion != ""),
+		zap.Bool("has_client_data", clientDataB64 != ""),
+		zap.Int("assertion_length", len(assertion)),
+		zap.Int("client_data_length", len(clientDataB64)),
+	)
+
 	// Decode the base64-encoded client data
 	clientData, err := base64.StdEncoding.DecodeString(clientDataB64)
 	if err != nil {
-		m.logger.AuthError("failed to decode client data",
+		m.logger.AuthError("failed to decode base64 client data",
 			zap.Error(err),
+			zap.String("client_data_b64", maskString(clientDataB64)),
 		)
 		return attestation.ErrInvalidAssertion
 	}
+
+	m.logger.Debug("successfully decoded client data",
+		zap.Int("decoded_length", len(clientData)),
+		zap.String("client_data_preview", maskString(string(clientData))),
+	)
 
 	data := &attestation.AssertionData{
 		Assertion:  assertion,
@@ -171,6 +255,13 @@ func parsePlatform(s string) attestation.Platform {
 	default:
 		return attestation.PlatformUnspecified
 	}
+}
+
+func maskString(s string) string {
+	if len(s) <= 8 {
+		return "***"
+	}
+	return s[:4] + "***" + s[len(s)-4:]
 }
 
 // ChallengeHandler returns an HTTP handler for generating attestation challenges.

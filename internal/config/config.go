@@ -32,15 +32,16 @@ type Config struct {
 	RequireAPIKey bool
 
 	// Attestation - leave disabled if you don't need it
-	AttestationIOSEnabled         bool
-	AttestationAndroidEnabled     bool
-	AttestationIOSBundleID        string
-	AttestationIOSTeamID          string
-	AttestationAndroidPackage     string
-	AttestationGCPProjectID       string
-	AttestationGCPCredentialsFile string
-	AttestationRequireStrong      bool
-	AttestationChallengeTimeout   time.Duration
+	AttestationIOSEnabled           bool
+	AttestationAndroidEnabled       bool
+	AttestationIOSBundleID          string
+	AttestationIOSTeamID            string
+	AttestationAndroidPackage       string
+	AttestationGCPProjectID         string
+	AttestationGCPCredentialsFile   string
+	AttestationRequireStrong        bool
+	AttestationChallengeTimeout     time.Duration
+	AttestationSkipCertVerification bool // WARNING: Development only!
 
 	// Redis for distributed attestation state (challenges + iOS key storage)
 	// If not set, uses in-memory stores (single instance only)
@@ -76,15 +77,16 @@ func Load() (*Config, error) {
 
 		RequireAPIKey: getEnvBool("REQUIRE_API_KEY", true),
 
-		AttestationIOSEnabled:         getEnvBool("ATTESTATION_IOS_ENABLED", false),
-		AttestationAndroidEnabled:     getEnvBool("ATTESTATION_ANDROID_ENABLED", false),
-		AttestationIOSBundleID:        os.Getenv("ATTESTATION_IOS_BUNDLE_ID"),
-		AttestationIOSTeamID:          os.Getenv("ATTESTATION_IOS_TEAM_ID"),
-		AttestationAndroidPackage:     os.Getenv("ATTESTATION_ANDROID_PACKAGE"),
-		AttestationGCPProjectID:       os.Getenv("ATTESTATION_GCP_PROJECT_ID"),
-		AttestationGCPCredentialsFile: os.Getenv("ATTESTATION_GCP_CREDENTIALS_FILE"),
-		AttestationRequireStrong:      getEnvBool("ATTESTATION_REQUIRE_STRONG_INTEGRITY", false),
-		AttestationChallengeTimeout:   getEnvDuration("ATTESTATION_CHALLENGE_TIMEOUT", 5*time.Minute),
+		AttestationIOSEnabled:           getEnvBool("ATTESTATION_IOS_ENABLED", false),
+		AttestationAndroidEnabled:       getEnvBool("ATTESTATION_ANDROID_ENABLED", false),
+		AttestationIOSBundleID:          os.Getenv("ATTESTATION_IOS_BUNDLE_ID"),
+		AttestationIOSTeamID:            os.Getenv("ATTESTATION_IOS_TEAM_ID"),
+		AttestationAndroidPackage:       os.Getenv("ATTESTATION_ANDROID_PACKAGE"),
+		AttestationGCPProjectID:         os.Getenv("ATTESTATION_GCP_PROJECT_ID"),
+		AttestationGCPCredentialsFile:   os.Getenv("ATTESTATION_GCP_CREDENTIALS_FILE"),
+		AttestationRequireStrong:        getEnvBool("ATTESTATION_REQUIRE_STRONG_INTEGRITY", false),
+		AttestationChallengeTimeout:     getEnvDuration("ATTESTATION_CHALLENGE_TIMEOUT", 5*time.Minute),
+		AttestationSkipCertVerification: getEnvBool("ATTESTATION_SKIP_CERT_VERIFICATION", false),
 
 		RedisEnabled:   getEnvBool("REDIS_ENABLED", false),
 		RedisAddr:      getEnvDefault("REDIS_ADDR", "localhost:6379"),

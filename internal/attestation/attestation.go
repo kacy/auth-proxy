@@ -37,15 +37,16 @@ const (
 
 // Config holds configuration for the attestation verifier.
 type Config struct {
-	IOSEnabled             bool
-	AndroidEnabled         bool
-	IOSBundleID            string
-	IOSTeamID              string
-	AndroidPackageName     string
-	GCPProjectID           string
-	GCPCredentialsFile     string
-	RequireStrongIntegrity bool
-	ChallengeTimeout       time.Duration
+	IOSEnabled                  bool
+	AndroidEnabled              bool
+	IOSBundleID                 string
+	IOSTeamID                   string
+	AndroidPackageName          string
+	GCPProjectID                string
+	GCPCredentialsFile          string
+	RequireStrongIntegrity      bool
+	ChallengeTimeout            time.Duration
+	SkipCertificateVerification bool // WARNING: Development only!
 }
 
 // RedisConfig holds Redis connection configuration.
@@ -113,8 +114,9 @@ func NewVerifier(config Config, redisConfig *RedisConfig, logger *logging.Logger
 
 	// Build verifier configuration
 	verifierCfg := deviceattest.Config{
-		ChallengeTimeout: timeout,
-		KeyStore:         v.keyStore,
+		ChallengeTimeout:            timeout,
+		KeyStore:                    v.keyStore,
+		SkipCertificateVerification: config.SkipCertificateVerification,
 	}
 
 	if config.IOSEnabled && config.IOSBundleID != "" {
@@ -256,12 +258,21 @@ func (v *Verifier) VerifyAssertion(ctx context.Context, data *AssertionData) err
 
 	v.logger.AppleAuth("verifying iOS assertion",
 		zap.String("key_id", maskString(data.KeyID)),
+		zap.String("bundle_id", data.BundleID),
+		zap.Bool("has_key_store", v.keyStore != nil),
 	)
 
 	bundleID := data.BundleID
 	if bundleID == "" {
 		bundleID = v.config.IOSBundleID
 	}
+
+	v.logger.Debug("assertion verification details",
+		zap.String("final_bundle_id", bundleID),
+		zap.String("team_id", v.config.IOSTeamID),
+		zap.Int("assertion_length", len(data.Assertion)),
+		zap.Int("client_data_length", len(data.ClientData)),
+	)
 
 	result, err := v.verifier.VerifyAssertion(ctx, &ios.AssertionRequest{
 		Assertion:  data.Assertion,
@@ -273,6 +284,8 @@ func (v *Verifier) VerifyAssertion(ctx context.Context, data *AssertionData) err
 	if err != nil {
 		v.logger.AuthError("iOS assertion verification failed",
 			zap.Error(err),
+			zap.String("key_id", maskString(data.KeyID)),
+			zap.String("bundle_id", bundleID),
 		)
 		return convertError(err)
 	}
@@ -287,12 +300,20 @@ func (v *Verifier) VerifyAssertion(ctx context.Context, data *AssertionData) err
 func (v *Verifier) verifyIOS(ctx context.Context, data *AttestationData) error {
 	v.logger.AppleAuth("verifying iOS attestation",
 		zap.String("key_id", maskString(data.KeyID)),
+		zap.Bool("has_key_store", v.keyStore != nil),
 	)
 
 	bundleID := data.BundleID
 	if bundleID == "" {
 		bundleID = v.config.IOSBundleID
 	}
+
+	v.logger.Debug("attestation verification details",
+		zap.String("bundle_id", bundleID),
+		zap.String("team_id", v.config.IOSTeamID),
+		zap.Int("token_length", len(data.Token)),
+		zap.Int("challenge_length", len(data.Challenge)),
+	)
 
 	result, err := v.verifier.Verify(ctx, &deviceattest.Request{
 		Platform:    deviceattest.PlatformIOS,
@@ -305,12 +326,14 @@ func (v *Verifier) verifyIOS(ctx context.Context, data *AttestationData) error {
 	if err != nil {
 		v.logger.AuthError("iOS attestation verification failed",
 			zap.Error(err),
+			zap.String("key_id", maskString(data.KeyID)),
 		)
 		return convertError(err)
 	}
 
-	v.logger.AuthSuccess("iOS attestation verified",
+	v.logger.AuthSuccess("iOS attestation verified and key stored",
 		zap.String("device_id", result.DeviceID),
+		zap.String("key_id", maskString(data.KeyID)),
 	)
 	return nil
 }
@@ -358,6 +381,28 @@ func (v *Verifier) ValidateChallenge(identifier, challengeToken string) bool {
 // HasKeyStore returns whether a key store is configured for assertion verification.
 func (v *Verifier) HasKeyStore() bool {
 	return v.keyStore != nil
+}
+
+// DebugInfo returns debug information about the verifier state.
+func (v *Verifier) DebugInfo() map[string]interface{} {
+	info := map[string]interface{}{
+		"ios_enabled":         v.config.IOSEnabled,
+		"android_enabled":     v.config.AndroidEnabled,
+		"has_key_store":       v.keyStore != nil,
+		"has_challenge_store": v.challengeStore != nil,
+	}
+
+	if v.config.IOSEnabled {
+		info["ios_bundle_id"] = v.config.IOSBundleID
+		info["ios_team_id"] = v.config.IOSTeamID
+	}
+
+	if v.config.AndroidEnabled {
+		info["android_package_name"] = v.config.AndroidPackageName
+		info["gcp_project_id"] = v.config.GCPProjectID
+	}
+
+	return info
 }
 
 func convertError(err error) error {

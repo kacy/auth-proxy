@@ -3,7 +3,7 @@ module github.com/kacy/auth-proxy
 go 1.25.5
 
 require (
-	github.com/kacy/device-attestation v0.1.1
+	github.com/kacy/device-attestation v0.1.2
 	github.com/prometheus/client_golang v1.19.1
 	github.com/redis/go-redis/v9 v9.17.2
 	go.uber.org/zap v1.27.0
