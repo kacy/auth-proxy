@@ -37,8 +37,8 @@ github.com/googleapis/enterprise-certificate-proxy v0.3.9 h1:TOpi/QG8iDcZlkQlGlF
 github.com/googleapis/enterprise-certificate-proxy v0.3.9/go.mod h1:MkHOF77EYAE7qfSuSS9PU6g4Nt4e11cnsDUowfwewLA=
 github.com/googleapis/gax-go/v2 v2.16.0 h1:iHbQmKLLZrexmb0OSsNGTeSTS0HO4YvFOG8g5E4Zd0Y=
 github.com/googleapis/gax-go/v2 v2.16.0/go.mod h1:o1vfQjjNZn4+dPnRdl/4ZD7S9414Y4xA+a/6Icj6l14=
-github.com/kacy/device-attestation v0.1.9 h1:VynmSlmlN2AAtz3knV87MuO+REi1b1PeIVRznwb7iKs=
-github.com/kacy/device-attestation v0.1.9/go.mod h1:4ZgjlE6tBmMYuBxSMSPPTmmoUCX2LvFOwGX4tIkgBgA=
+github.com/kacy/device-attestation v0.1.11 h1:wwZ2yQhrdR8IEBG4M4I+Fcu1q3fH0TKGxxGWT+0AJDc=
+github.com/kacy/device-attestation v0.1.11/go.mod h1:4ZgjlE6tBmMYuBxSMSPPTmmoUCX2LvFOwGX4tIkgBgA=
 github.com/pmezard/go-difflib v1.0.0 h1:4DBwDE0NGyQoBHbLQYPwSUPoCMWR5BEzIk/f1lZbAQM=
 github.com/pmezard/go-difflib v1.0.0/go.mod h1:iKH77koFhYxTK1pcRnkKkqfTogsbg7gZNVY4sRDYZ/4=
 github.com/prometheus/client_golang v1.19.1 h1:wZWJDwK+NameRJuPGDhlnFgx8e8HN3XHQeLaYJFJBOE=
