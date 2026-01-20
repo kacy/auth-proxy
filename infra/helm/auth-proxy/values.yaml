@@ -189,6 +189,7 @@ config:
     androidEnabled: false
     requireStrongIntegrity: false
     challengeTimeout: "5m"
+    skipCertVerification: false  # WARNING: Only set to true for development!
 
   # Redis settings (for distributed attestation state)
   redis:

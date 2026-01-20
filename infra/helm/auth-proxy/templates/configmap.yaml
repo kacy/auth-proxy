@@ -19,6 +19,7 @@ data:
   ATTESTATION_ANDROID_ENABLED: {{ .Values.config.attestation.androidEnabled | quote }}
   ATTESTATION_REQUIRE_STRONG_INTEGRITY: {{ .Values.config.attestation.requireStrongIntegrity | quote }}
   ATTESTATION_CHALLENGE_TIMEOUT: {{ .Values.config.attestation.challengeTimeout | quote }}
+  ATTESTATION_SKIP_CERT_VERIFICATION: {{ .Values.config.attestation.skipCertVerification | default "false" | quote }}
   REDIS_ENABLED: {{ .Values.config.redis.enabled | quote }}
   REDIS_DB: {{ .Values.config.redis.db | quote }}
   REDIS_KEY_PREFIX: {{ .Values.config.redis.keyPrefix | quote }}
